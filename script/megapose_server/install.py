@@ -121,14 +121,24 @@ def download_models(happypose_env: str, happypose_path: Path, happypose_data_pat
   '''
   Download the happypose deep learning models
   '''
-  os.environ['HAPPYPOSE_DATA_DIR'] = str(happypose_data_dir)
+  # models_path = happypose_data_path / 'megapose-models'
+  # conf_path = happypose_path / 'rclone.conf'
+  # rclone = str(get_rclone_for_conda_env(happypose_env).absolute())
+  # arguments = [rclone, 'copyto', 'happypose:megapose-models/',
+  #             str(models_path), '--exclude', '*epoch*',
+  #             '--config', str(conf_path), '--progress']
+  # print(' '.join(arguments))
+  # subprocess.run(arguments, check=True)
+  os.environ['PATH'] = str(get_megapose_bin_conda_env(happypose_env)) + os.pathsep + os.environ['PATH']
+  env = {**os.environ, 'HAPPYPOSE_DATA_DIR':  str(happypose_data_dir)}
   python_bin = get_python_for_conda_env(happypose_env)
+  happypose_data_path.mkdir(exist_ok=True)
   subprocess.run([
     str(python_bin),
     '-m',
     'happypose.toolbox.utils.download',
     '--megapose_models'
-  ], check=True)
+  ], check=True, env=env)
 
 def install_server(happypose_env: str):
   '''
@@ -149,11 +159,6 @@ if __name__ == "__main__":
   happypose_dir = Path(happypose_variables['happypose_dir']).absolute()
   happypose_data_dir = Path(happypose_variables['happypose_data_dir']).absolute()
   happypose_environment = happypose_variables['environment']
-
-  happypose_dir.mkdir(exist_ok=True)
-  happypose_data_dir.mkdir(exist_ok=True)
-
-
 
   display_message = f'''
 This script installs Megapose and the server to communicate with ViSP. The installed Megapose version from the Happypose project
@@ -183,7 +188,7 @@ The steps followed in the script are the same, but end with the installation of 
   print('Cloning happypose directory...')
   clone_happypose(happypose_dir)
   print('Creating conda environment and installing happypose...')
-  install_dependencies(happypose_dir, happypose_environment)
+  #install_dependencies(happypose_dir, happypose_environment)
   print('Downloading megapose models...')
   download_models(happypose_environment, happypose_dir, happypose_data_dir)
   print('Installing server...')
