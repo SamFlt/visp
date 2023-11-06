@@ -6,8 +6,8 @@ from setuptools import setup
 from setuptools.command.install import install
 
 from pathlib import Path
-base_json_filename = 'megapose_variables.json'
-fixed_json_filename = 'megapose_variables_final.json'
+base_json_filename = 'happypose_variables.json'
+fixed_json_filename = 'happypose_variables_final.json'
 
 class GenerateFixedJSON(Command):
   description = 'generate JSON file with absolute paths'
@@ -26,10 +26,10 @@ class GenerateFixedJSON(Command):
     with open(base_json_filename, 'r') as variables:
       megapose_variables = json.load(variables)
 
-    megapose_dir = Path(megapose_variables['megapose_dir']).absolute()
-    megapose_data_dir = Path(megapose_variables['megapose_data_dir']).absolute()
-    megapose_variables['megapose_dir'] = str(megapose_dir)
-    megapose_variables['megapose_data_dir'] = str(megapose_data_dir)
+    megapose_dir = Path(megapose_variables['happypose_dir']).absolute()
+    megapose_data_dir = Path(megapose_variables['happypose_data_dir']).absolute()
+    megapose_variables['happypose_dir'] = str(megapose_dir)
+    megapose_variables['happypose_data_dir'] = str(megapose_data_dir)
     with open(fixed_json_filename, "w") as f:
       f.write(json.dumps(megapose_variables))
 
@@ -54,7 +54,7 @@ class InstallCommand(install):
     #self.run_command('delete_fixed_json')
 setup(
     name='megapose_server',
-    version='0.2',
+    version='0.3',
     description='Megapose TCP server',
     cmdclass={
         'generate_fixed_json': GenerateFixedJSON,

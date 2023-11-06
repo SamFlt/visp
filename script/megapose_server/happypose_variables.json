@@ -1,0 +1,5 @@
+{
+  "happypose_dir": "./happypose",
+  "happypose_data_dir": "./happypose/data",
+  "environment": "happypose"
+}

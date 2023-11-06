@@ -3,12 +3,12 @@ import os
 import json
 import megapose_server
 megapose_server_install_dir = os.path.dirname(megapose_server.__file__)
-variables_file = os.path.join(megapose_server_install_dir, 'megapose_variables_final.json')
+variables_file = os.path.join(megapose_server_install_dir, 'happypose_variables_final.json')
 with open(variables_file, 'r') as f:
     json_vars = json.load(f)
     print('Loaded megapose variables', json_vars)
-    os.environ['MEGAPOSE_DIR'] = json_vars['megapose_dir']
-    os.environ['MEGAPOSE_DATA_DIR'] = json_vars['megapose_data_dir']
+    os.environ['MEGAPOSE_DIR'] = json_vars['happypose_dir']
+    os.environ['HAPPYPOSE_DATA_DIR'] = json_vars['happypose_data_dir']
 
 if 'HOME' not in os.environ: # Home is always required by megapose but is not always set
     if os.name == 'nt':
@@ -42,19 +42,19 @@ import torch.nn as nn
 from torch.fx.experimental.optimization import optimize_for_inference, fuse
 
 # MegaPose
-from megapose.datasets.object_dataset import RigidObject, RigidObjectDataset
-from megapose.datasets.scene_dataset import CameraData, ObjectData
-from megapose.inference.types import (
+from happypose.toolbox.datasets.object_dataset import RigidObject, RigidObjectDataset
+from happypose.toolbox.datasets.scene_dataset import CameraData, ObjectData
+from happypose.pose_estimators.megapose.inference.types import (
     DetectionsType,
     ObservationTensor,
     PoseEstimatesType,
 )
-from megapose.inference.utils import make_detections_from_object_data
-from megapose.lib3d.transform import Transform
-from megapose.panda3d_renderer import Panda3dLightData
-from megapose.panda3d_renderer.panda3d_scene_renderer import Panda3dSceneRenderer
-from megapose.utils.conversion import convert_scene_observation_to_panda3d
-from megapose.utils.load_model import NAMED_MODELS, load_named_model
+from happypose.toolbox.inference.utils import make_detections_from_object_data
+from happypose.toolbox.lib3d.transform import Transform
+from happypose.toolbox.renderer.types import Panda3dLightData
+from happypose.toolbox.renderer.panda3d_scene_renderer import Panda3dSceneRenderer
+from happypose.toolbox.utils.conversion import convert_scene_observation_to_panda3d
+from happypose.toolbox.utils.load_model import NAMED_MODELS, load_named_model
 
 # Megapose server
 from megapose_server.network_utils import *

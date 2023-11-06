@@ -4,147 +4,166 @@ import json
 import subprocess
 from subprocess import CalledProcessError
 import os
-from typing import Union
+from typing import List, Union
 import shutil
-megapose_url = 'https://github.com/megapose6d/megapose6d.git'
+happypose_url = 'https://github.com/agimus-project/happypose.git'
+
+
+
 
 conda_exe = shutil.which('conda')
 if conda_exe is None:
   raise RuntimeError('Conda was not found with shutil.which')
 
-def get_megapose_env_path(megapose_env: str) -> Union[Path, None]:
+def get_happypose_env_path(megapose_env: str) -> Union[Path, None]:
   '''
   Retrieve the megapose environment path, by parsing the conda info --envs command
   may return none if no environment with the given name is found
   '''
   env_data = str(subprocess.check_output('conda info --envs', shell=True).decode())
   env_lines = env_data.split('\n')
-  megapose_env_line = [line for line in env_lines if line.startswith(megapose_env)]
-  assert len(megapose_env_line) <= 1, 'Found multiple environment names with same name, this should not happen'
-  if len(megapose_env_line) == 0:
+  happypose_env_line = [line for line in env_lines if line.startswith(megapose_env)]
+  assert len(happypose_env_line) <= 1, 'Found multiple environment names with same name, this should not happen'
+  if len(happypose_env_line) == 0:
     return None
-  megapose_env_line = megapose_env_line[0]
-  megapose_env_path = Path(megapose_env_line.split()[-1]).absolute()
-  assert(megapose_env_path.exists())
-  return megapose_env_path
+  happypose_env_line = happypose_env_line[0]
+  happypose_env_path = Path(happypose_env_line.split()[-1]).absolute()
+  assert(happypose_env_path.exists())
+  return happypose_env_path
 
-def get_megapose_bin_conda_env(megapose_env: str) -> Path:
+def get_megapose_bin_conda_env(happypose_env: str) -> Path:
   '''
   Retrieve the bin folder of a conda environment
   '''
-  megapose_env_path = get_megapose_env_path(megapose_env)
-  assert megapose_env_path is not None
-  megapose_env_bin = megapose_env_path / 'bin'
-  return megapose_env_bin
+  happypose_env_path = get_happypose_env_path(happypose_env)
+  assert happypose_env_path is not None
+  happypose_env_bin = happypose_env_path / 'bin'
+  return happypose_env_bin
 
-def get_pip_for_conda_env(megapose_env: str):
+def get_pip_for_conda_env(happypose_env: str):
   '''
   Retrieve the pip script linked to a conda environment
   '''
-  conda_bin = get_megapose_bin_conda_env(megapose_env)
+  conda_bin = get_megapose_bin_conda_env(happypose_env)
   # On windows, pip is not in the bin directory but rather in scripts
   if os.name == 'nt':
     return conda_bin.parent / 'Scripts' / 'pip'
   else:
     return conda_bin / 'pip'
 
+def get_python_for_conda_env(happypose_env: str):
+  '''
+  Retrieve the python interpreter linked to a conda environment
+  '''
+  conda_bin = get_megapose_bin_conda_env(happypose_env)
+  return conda_bin / 'python'
 
-def get_rclone_for_conda_env(megapose_env: str) -> Path:
+def get_rclone_for_conda_env(happypose_env: str) -> Path:
   '''
   Retrieve rclone program installed in a conda environment
   '''
-  return get_megapose_bin_conda_env(megapose_env) / 'rclone'
+  return get_megapose_bin_conda_env(happypose_env) / 'rclone'
 
-def megapose_already_cloned(megapose_path: Path) -> bool:
+def happypose_already_cloned(happypose_path: Path) -> bool:
   '''
-  Check whether the megapose GitHub repo has already been cloned at the given location
+  Check whether the happypose GitHub repo has already been cloned at the given location
   '''
-  return megapose_path.exists() and (megapose_path / 'rclone.conf').exists() and ((megapose_path / 'src') / 'megapose').exists()
+  must_exist: List[Path] = [
+    happypose_path,
+    happy_megapose(happypose_path),
+    happypose_path / 'rclone.conf'
+  ]
+  return all(map(lambda p: p.exists(), must_exist))
 
-def conda_env_already_exists(megapose_env: str) -> bool:
+def happy_megapose(happypose_path: Path) -> Path:
+  return happypose_path / 'happypose' / 'pose_estimators' / 'megapose'
+
+def happypose_env_file(happypose_path: Path) -> Path:
+  return happypose_path / 'environment.yml'
+
+def conda_env_already_exists(happypose_env: str) -> bool:
   '''
   Check whether the given conda environment already exists
   '''
-  return get_megapose_env_path(megapose_env) is not None
+  return get_happypose_env_path(happypose_env) is not None
 
-def clone_megapose(megapose_path: Path):
+def clone_happypose(happypose_path: Path):
   '''
-  Clone the megapose repository, and initialize its submodules. If it already exists, nothing is performed.
+  Clone the happypose repository, and initialize its submodules. If it already exists, nothing is performed.
   '''
-  print('Cloning megapose git repo...')
-  if not megapose_already_cloned(megapose_path):
+  if not happypose_already_cloned(happypose_path):
     try:
-      subprocess.run(['git', 'clone', megapose_url, str(megapose_path)], check=True, text=True)
-      current_dir = os.getcwd()
-      os.chdir(megapose_path)
-      subprocess.run(['git', 'submodule', 'update', '--init'], check=True, text=True)
-      os.chdir(current_dir)
+      subprocess.run(['git', 'clone', '--branch', 'dev', '--recurse-submodules', happypose_url, str(happypose_path)], check=True, text=True)
     except CalledProcessError as e:
-      print('Could not clone megapose directory')
+      print('Could not clone happypose repository')
       exit(1)
   else:
-    print('Megapose git repo already exists, skipping...')
+    print('happypose git repo already exists, skipping...')
 
-def install_dependencies(megapose_path: Path, megapose_environment: str):
+def install_dependencies(happypose_path: Path, happypose_environment: str):
   '''
-  Install or update the required conda dependencies for megapose
+  Install or update the required conda dependencies for happypose
   '''
   try:
-    if not conda_env_already_exists(megapose_environment):
-      subprocess.run([conda_exe, 'env', 'create', '--name', megapose_environment, '--file', 'megapose_environment.yml'], check=True)
+    if not conda_env_already_exists(happypose_environment):
+      subprocess.run([conda_exe, 'env', 'create', '--name', happypose_environment, '--file', happypose_env_file(happypose_path)], check=True)
     else:
-      print(f'Conda environment {megapose_environment} already exists, updating dependencies...')
-      subprocess.run([conda_exe, 'env', 'update', '--name', megapose_environment, '--file', 'megapose_environment.yml'], check=True)
-    megapose_env_pip = get_pip_for_conda_env(megapose_environment)
-    subprocess.run([str(megapose_env_pip.absolute()), 'install', '-e',  str(megapose_path)], check=True) # shell=True because without it the custom pip cannot be found
+      print(f'Conda environment {happypose_environment} already exists, updating dependencies...')
+      subprocess.run([conda_exe, 'env', 'update', '--name', happypose_environment, '--file', happypose_env_file(happypose_path)], check=True)
+    happypose_env_pip = get_pip_for_conda_env(happypose_environment)
+    subprocess.run([str(happypose_env_pip.absolute()), 'install', '-e',  str(happypose_path)], check=True)
   except CalledProcessError as e:
     print('Could not create conda environment')
     exit(1)
 
 
-def download_models(megapose_env: str, megapose_path: Path, megapose_data_path: Path):
+def download_models(happypose_env: str, happypose_path: Path, happypose_data_path: Path):
   '''
-  Download the megapose deep learning models
+  Download the happypose deep learning models
   '''
-  models_path = megapose_data_path / 'megapose-models'
-  conf_path = megapose_path / 'rclone.conf'
-  rclone = str(get_rclone_for_conda_env(megapose_env).absolute())
-  arguments = [rclone, 'copyto', 'inria_data:megapose-models/',
-                str(models_path), '--exclude', '*epoch*',
-                '--config', str(conf_path), '--progress']
-  print(' '.join(arguments))
-  subprocess.run(arguments, check=True)
+  os.environ['HAPPYPOSE_DATA_DIR'] = str(happypose_data_dir)
+  python_bin = get_python_for_conda_env(happypose_env)
+  subprocess.run([
+    str(python_bin),
+    '-m',
+    'happypose.toolbox.utils.download',
+    '--megapose_models'
+  ], check=True)
 
-
-def install_server(megapose_env: str):
+def install_server(happypose_env: str):
   '''
   Install the megapose_server package
   '''
-  megapose_env_pip = get_pip_for_conda_env(megapose_env)
-  subprocess.run([megapose_env_pip, 'install', '.'], check=True)
+  happypose_env_pip = get_pip_for_conda_env(happypose_env)
+  subprocess.run([happypose_env_pip, 'install', '.'], check=True)
 
 
 
 if __name__ == "__main__":
-  megapose_variables = None
-  with open('./megapose_variables.json', 'r') as variables:
-    megapose_variables = json.load(variables)
+  happypose_variables = None
+  with open('./happypose_variables.json', 'r') as variables:
+    happypose_variables = json.load(variables)
 
   megapose_server_dir = Path(os.path.dirname(os.path.abspath(__file__)))
 
-  megapose_dir = Path(megapose_variables['megapose_dir']).absolute()
-  megapose_data_dir = Path(megapose_variables['megapose_data_dir']).absolute()
-  megapose_environment = megapose_variables['environment']
+  happypose_dir = Path(happypose_variables['happypose_dir']).absolute()
+  happypose_data_dir = Path(happypose_variables['happypose_data_dir']).absolute()
+  happypose_environment = happypose_variables['environment']
+
+  happypose_dir.mkdir(exist_ok=True)
+  happypose_data_dir.mkdir(exist_ok=True)
+
+
 
   display_message = f'''
-This script installs Megapose and the server to communicate with ViSP.
-the file "megapose_variables.json" specifies where megapose should be cloned and where the models should be downloaded.
+This script installs Megapose and the server to communicate with ViSP. The installed Megapose version from the Happypose project
+the file "happypose_variables.json" specifies where megapose should be cloned and where the models should be downloaded.
 It also contains the name of the conda environment to create.
 
 current values:
-  - Megapose directory: {megapose_dir}
-  - Megapose model directory: {megapose_data_dir}
-  - Conda environment name: {megapose_environment}
+  - Happypose directory: {happypose_dir}
+  - Happypose model directory: {happypose_data_dir}
+  - Conda environment name: {happypose_environment}
 
 Installation requires:
   - git
@@ -161,18 +180,18 @@ The steps followed in the script are the same, but end with the installation of 
 
 '''
   print(display_message)
-  print('Cloning megapose directory...')
-  clone_megapose(megapose_dir)
-  print('Creating conda environment and installing megapose...')
-  install_dependencies(megapose_dir, megapose_environment)
+  print('Cloning happypose directory...')
+  clone_happypose(happypose_dir)
+  print('Creating conda environment and installing happypose...')
+  install_dependencies(happypose_dir, happypose_environment)
   print('Downloading megapose models...')
-  download_models(megapose_environment, megapose_dir, megapose_data_dir)
+  download_models(happypose_environment, happypose_dir, happypose_data_dir)
   print('Installing server...')
-  install_server(megapose_environment)
+  install_server(happypose_environment)
 
   print(f'''
 Megapose server is now installed!
 Try:
-  $ conda activate {megapose_environment}
+  $ conda activate {happypose_environment}
   $ python -m megapose_server.run -h
   ''')
