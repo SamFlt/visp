@@ -58,11 +58,6 @@ def get_python_for_conda_env(happypose_env: str):
   conda_bin = get_megapose_bin_conda_env(happypose_env)
   return conda_bin / 'python'
 
-def get_rclone_for_conda_env(happypose_env: str) -> Path:
-  '''
-  Retrieve rclone program installed in a conda environment
-  '''
-  return get_megapose_bin_conda_env(happypose_env) / 'rclone'
 
 def happypose_already_cloned(happypose_path: Path) -> bool:
   '''
@@ -71,7 +66,7 @@ def happypose_already_cloned(happypose_path: Path) -> bool:
   must_exist: List[Path] = [
     happypose_path,
     happy_megapose(happypose_path),
-    happypose_path / 'rclone.conf'
+    happypose_path / 'pyproject.toml'
   ]
   return all(map(lambda p: p.exists(), must_exist))
 
@@ -188,7 +183,7 @@ The steps followed in the script are the same, but end with the installation of 
   print('Cloning happypose directory...')
   clone_happypose(happypose_dir)
   print('Creating conda environment and installing happypose...')
-  #install_dependencies(happypose_dir, happypose_environment)
+  install_dependencies(happypose_dir, happypose_environment)
   print('Downloading megapose models...')
   download_models(happypose_environment, happypose_dir, happypose_data_dir)
   print('Installing server...')
