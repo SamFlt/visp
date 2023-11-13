@@ -34,6 +34,7 @@ import struct
 import io
 import sys
 import traceback
+import threading
 from operator import itemgetter
 import pandas as pd
 import torch
@@ -81,6 +82,30 @@ class MegaposeServer():
     '''
     A TCP-based server that can be interrogated to estimate the pose of an object  with MegaPose
     '''
+
+    class ConnectionThread(threading.Thread):
+      '''A thread that handles a single client'''
+      def __init__(self, main_server, socket, address):
+        super(MegaposeServer.ConnectionThread, self).__init__()
+        self.main_server = main_server
+        self.socket = socket
+        self.address = address
+      def run(self):
+        with self.socket:
+          while True:
+            try:
+              code, buffer = receive_message(self.socket)
+              if code == ServerMessage.EXIT.value:
+                self.socket.close()
+                print(f'Connection to {self.address} closed.')
+                break
+              else:
+                self.main_server.operations[code](self.socket, buffer)
+            except:
+              traceback.print_exc()
+              print(f'Connection with {self.address} broken')
+              break
+
     def __init__(self, host: str, port: int, model_name: str, mesh_dir: Path, camera_data: Dict,
                  optimize: bool, num_workers: int, image_batch_size=256, warmup=True, verbose=False,
                  device: Optional[str]=None):
@@ -434,22 +459,9 @@ class MegaposeServer():
                     print('Waiting for connection')
                     connection, address = s.accept()
                     print(f'Connected to {address}')
-                    with connection:
-                        while True:
-                            try:
-                                import time
-                                t = time.time()
-                                code, buffer = receive_message(connection)
-                                if code == ServerMessage.EXIT.value:
-                                    connection.close()
-                                    print(f'Connection to {address} closed.')
-                                    break
-                                else:
-                                    self.operations[code](connection, buffer)
-                            except:
-                                traceback.print_exc()
-                                print('Connection broken')
-                                break
+                    thread = MegaposeServer.ConnectionThread(self, connection, address)
+                    thread.start()
+
         except Exception as e:
             traceback.print_exc()
             print('Shutting down server')

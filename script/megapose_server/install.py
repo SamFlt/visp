@@ -106,7 +106,7 @@ def install_dependencies(happypose_path: Path, happypose_environment: str):
       print(f'Conda environment {happypose_environment} already exists, updating dependencies...')
       subprocess.run([conda_exe, 'env', 'update', '--name', happypose_environment, '--file', happypose_env_file(happypose_path)], check=True)
     happypose_env_pip = get_pip_for_conda_env(happypose_environment)
-    subprocess.run([str(happypose_env_pip.absolute()), 'install', '-e',  str(happypose_path)], check=True)
+    subprocess.run([str(happypose_env_pip.absolute()), 'install', '-e',  str(happypose_path) + '[render]'], check=True)
   except CalledProcessError as e:
     print('Could not create conda environment')
     exit(1)
@@ -183,7 +183,7 @@ The steps followed in the script are the same, but end with the installation of 
   print('Cloning happypose directory...')
   clone_happypose(happypose_dir)
   print('Creating conda environment and installing happypose...')
-  install_dependencies(happypose_dir, happypose_environment)
+  #install_dependencies(happypose_dir, happypose_environment)
   print('Downloading megapose models...')
   download_models(happypose_environment, happypose_dir, happypose_data_dir)
   print('Installing server...')
