@@ -20,10 +20,11 @@ The method has several advantages:
   - Does not require retraining for novel objects
 
 It has however, several drawbacks:
-  - Running MegaPose requires a GPU. However, the integration in ViSP is based on a client-server model: MegaPose can thus run on a remote machine and its result retrieved on the local host (e.g, a computer with a CPU connected to a robot)
+  - Megapose should be run on a GPU for best performance. Since the integration in ViSP is based on a client-server model: MegaPose can be run on a remote machine and its result retrieved on the local host (e.g, a computer with a CPU connected to a robot)
   - It may be too slow for your requirements
     - With the default parameters, on a 640 x 480 image, initial pose estimation takes around 2 seconds on an Nvidia Quadro RTX 6000
     - On the same setup, a pose update (refinement) iteration takes around 60-70 milliseconds
+    - With CPU only for the deep learning part (but still performing rendering on the GPU), the initialization goes up to ~30 seconds and each refinement iteration to around 200ms
   - To perform the initial pose estimation, MegaPose requires an estimate of the image region containing the image (i.e., a bounding box detection).
     You may thus require a way to detect the object, such as an object detection neural network (available in ViSP with the class vpDetectorDNNOpenCV, see \ref tutorial-detection-dnn).
     For initial tests, the bounding box can also be provided by the user via click.
@@ -40,7 +41,7 @@ The MegaPose integration in ViSP is based on a client-server model:
 - The server is written in Python. It wraps around the MegaPose model. Each time a pose estimation is requested, the server reshapes the data and forwards it to MegaPose.
   It then sends back the information to the client.
 
-\note The computer running the server needs a GPU. The client can run on the same computer as the server. It can also run on another computer without a GPU.
+\note The computer running the server should have a GPU. The client can run on the same computer as the server. It can also run on another computer without a GPU.
 To obtain have a decent tracking speed, it is recommended to have both machines on the same network.
 
 This tutorial will explain how to install and run MegaPose and
@@ -73,7 +74,7 @@ The MegaPose client, written in C++, is included directly in ViSP. It can be ins
 
 \warning The megapose server cannot directly be installed and used on Windows. A workaround is to install it in a <a href="https://learn.microsoft.com/en-us/windows/wsl/install">WSL container</a>. A WSL container works as a Linux (Ubuntu) distribution. The client still works on Windows, and WSL allows for port forwarding, making its usage seamless from the perspective of the client.
 
-MegaPose server should be installed on a computer equipped with a GPU. To install the MegaPose server, there are two dependencies:
+MegaPose server should ideally be installed on a computer equipped with a GPU. To install the MegaPose server, there are two dependencies:
   - Conda: MegaPose will be installed in a new virtual environment in order to avoid potential conflicts with python and other packages you have already installed
     - To install conda on your system, we recommend `miniconda`, a minimal version of conda. To install, see <a href="https://docs.conda.io/en/latest/miniconda.html">the miniconda documentation</a>
     - Once installed, make sure that conda is in your environment path variable. The conda installation procedure should do this by default.

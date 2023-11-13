@@ -7,7 +7,7 @@ variables_file = os.path.join(megapose_server_install_dir, 'happypose_variables_
 with open(variables_file, 'r') as f:
     json_vars = json.load(f)
     print('Loaded megapose variables', json_vars)
-    os.environ['MEGAPOSE_DIR'] = json_vars['happypose_dir']
+    os.environ['HAPPYPOSE_DIR'] = json_vars['happypose_dir']
     os.environ['HAPPYPOSE_DATA_DIR'] = json_vars['happypose_data_dir']
 
 if 'HOME' not in os.environ: # Home is always required by megapose but is not always set
@@ -81,7 +81,9 @@ class MegaposeServer():
     '''
     A TCP-based server that can be interrogated to estimate the pose of an object  with MegaPose
     '''
-    def __init__(self, host: str, port: int, model_name: str, mesh_dir: Path, camera_data: Dict, optimize: bool, num_workers: int, image_batch_size=256, warmup=True, verbose=False):
+    def __init__(self, host: str, port: int, model_name: str, mesh_dir: Path, camera_data: Dict,
+                 optimize: bool, num_workers: int, image_batch_size=256, warmup=True, verbose=False,
+                 device: Optional[str]=None):
         """Create a TCP server that listens for an incoming connection
         and can be used to answer client queries about an object pose with respect to the camera frame
 
@@ -105,6 +107,7 @@ class MegaposeServer():
                 Still very experimental, and may result in a loss of accuracy with no performance gain!
             warmup (bool): Whether to perform model warmup in order to avoid a slow first inference pass
             verbose (bool): print additional information
+            device (str): Device on which to run megapose
         """
         self.host = host
         self.port = port
@@ -118,49 +121,57 @@ class MegaposeServer():
             ServerMessage.GET_LIST_OBJECTS.value: self._list_objects,
         }
 
+        self.device = device
+        if self.device is None:
+            self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         self.object_dataset: RigidObjectDataset = make_object_dataset(mesh_dir)
         model_tuple = self._load_model(model_name)
         self.model_info = model_tuple[0]
         self.model = model_tuple[1]
         self.model.eval()
         self.model.bsz_images = image_batch_size
-        self.camera_data = self._make_camera_data(camera_data)
-        self.renderer = Panda3dSceneRenderer(self.object_dataset)
         torch.backends.cudnn.benchmark = True
         torch.backends.cudnn.deterministic = False
         self.optimize = optimize
         self.warmup = warmup
         self.verbose = verbose
+        self.camera_data = self._make_camera_data(camera_data)
+        self.renderer = Panda3dSceneRenderer(self.object_dataset)
         if self.optimize:
             print('Optimizing Pytorch models...')
             class Optimized(nn.Module):
-                def __init__(self, m: nn.Module, inp):
+                def __init__(self, m: nn.Module, inp, device: str):
                     super().__init__()
                     self.m = m.eval()
                     self.m = fuse(self.m, inplace=False)
-                    self.m = torch.jit.trace(self.m, torch.rand(inp).cuda())
+                    self.m = torch.jit.trace(self.m, torch.rand(inp).to(device))
                     self.m = torch.jit.freeze(self.m)
 
                 def forward(self, x):
                     return self.m(x).float()
 
             h, w = self.camera_data.resolution
-            self.model.coarse_model.backbone = Optimized(self.model.coarse_model.backbone, (1, 9, h, w))
-            self.model.refiner_model.backbone = Optimized(self.model.refiner_model.backbone, (1, 32 if self.model_info['requires_depth'] else 27, h, w))
+            self.model.coarse_model.backbone = Optimized(self.model.coarse_model.backbone, (1, 9, h, w), self.device)
+            self.model.refiner_model.backbone = Optimized(self.model.refiner_model.backbone, (1, 32 if self.model_info['requires_depth'] else 27, h, w), self.device)
 
         if self.warmup:
             print('Warming up models...')
             h, w = self.camera_data.resolution
             labels = self.object_dataset.label_to_objects.keys()
             observation = self._make_observation_tensor(np.random.randint(0, 255, (h, w, 3), dtype=np.uint8),
-                                                        np.random.rand(h, w).astype(np.float32) if self.model_info['requires_depth'] else None).cuda()
-            detections = self._make_detections(labels, np.asarray([[0, 0, w//2, h//2] for _ in range(len(labels))], dtype=np.float32)).cuda()
+                                                        np.random.rand(h, w).astype(np.float32) if self.model_info['requires_depth'] else None)
+            detections = self._make_detections(labels, np.asarray([[0, 0, w//2, h//2] for _ in range(len(labels))], dtype=np.float32))
+            if self.device == 'cuda':
+              observation = observation.cuda()
+              detections = detections.cuda()
             self.model.run_inference_pipeline(observation, detections, **self.model_info['inference_parameters'])
 
 
 
     def _load_model(self, model_name):
-        return NAMED_MODELS[model_name], load_named_model(model_name, self.object_dataset, n_workers=self.num_workers).cuda()
+        model = load_named_model(model_name, self.object_dataset, n_workers=self.num_workers)
+        model.coarse_model.mesh_db.to(self.device)
+        return NAMED_MODELS[model_name], model.cuda() if self.device == 'cuda' else model.cpu()
 
     def _estimate_pose(self, s: socket.socket, buffer: io.BytesIO):
         '''
@@ -194,7 +205,7 @@ class MegaposeServer():
         coarse_estimates = None
         if initial_cTos is not None:
             cTos_np = np.array(initial_cTos).reshape(-1, 4, 4)
-            tensor = torch.from_numpy(cTos_np).float().cuda()
+            tensor = torch.from_numpy(cTos_np).float().to(self.device)
             infos = pd.DataFrame.from_dict({
                 'label': labels,
                 'batch_im_id': [0 for _ in range(len(cTos_np))],
@@ -203,8 +214,11 @@ class MegaposeServer():
             coarse_estimates = PoseEstimatesType(infos, poses=tensor)
         input_proc_time = time.time() - t
         # print(f'Input buffer processing took: {time.time() - t}s')
-        detections = self._make_detections(labels, detections).cuda() if detections is not None else None
-        observation = self._make_observation_tensor(img, depth).cuda()
+        detections = self._make_detections(labels, detections) if detections is not None else None
+        observation = self._make_observation_tensor(img, depth)
+        if self.device == 'cuda':
+          detections = detections.cuda() if detections is not None else None
+          observation = observation.cuda()
         inference_params = self.model_info['inference_parameters'].copy()
         if 'refiner_iterations' in json_object:
             inference_params['n_refiner_iterations'] = json_object['refiner_iterations']
@@ -309,14 +323,16 @@ class MegaposeServer():
         pose_estimates = None
         if poses is not None:
             cTos_np = np.array(poses).reshape(-1, 4, 4)
-            tensor = torch.from_numpy(cTos_np).float().cuda()
+            tensor = torch.from_numpy(cTos_np).float().to(self.device)
             infos = pd.DataFrame.from_dict({
                 'label': labels,
                 'batch_im_id': [0 for i in range(len(cTos_np))],
                 'instance_id': [i for i in range(len(cTos_np))]
             })
             pose_estimates = PoseEstimatesType(infos, poses=tensor)
-        observation = self._make_observation_tensor(img).cuda()
+        observation = self._make_observation_tensor(img)
+        if self.device == 'cuda':
+          observation = observation.cuda()
         result = self.model.forward_scoring_model(observation, pose_estimates)
         scores = result[0].infos['pose_score']
         def make_result(buffer):
@@ -372,29 +388,6 @@ class MegaposeServer():
         s.sendall(msg)
 
     def _set_SO3_grid_size(self, s: socket.socket, buffer: io.BytesIO):
-        '''
-        Set the SO(3) grid size. This dictates the number of images generated to find a coarse pose estimate.
-        '''
-        def random_quaternion(rand: Optional[Union[List[float], np.ndarray]] = None) -> np.ndarray:
-            """ Return uniform random unit quaternion.
-            Adapted from:
-            https://github.com/thodan/bop_toolkit/blob/master/bop_toolkit_lib/transform.py
-
-            :param rand: Three independent random variables that are uniformly distributed between 0 and 1.
-            :return: Unit quaternion.
-            """
-            if rand is None:
-                rand = np.random.rand(3)
-            else:
-                assert len(rand) == 3
-
-            r1 = np.sqrt(1.0 - rand[0])
-            r2 = np.sqrt(rand[0])
-            pi2 = np.pi * 2.0
-            t1 = pi2 * rand[1]
-            t2 = pi2 * rand[2]
-
-            return np.array([np.sin(t1) * r1, np.cos(t1) * r1, np.sin(t2) * r2, np.cos(t2) * r2])
         json_object = json.loads(read_string(buffer))
         value = json_object['so3_grid_size']
         if value in [72, 512, 576, 4608]:
@@ -402,14 +395,9 @@ class MegaposeServer():
         else:
             print('Number of SO(3) grid samples is not standard, generating random orientations.')
             import roma
-            rng = 17
-            rand_gen = np.random.default_rng(seed=rng)
-            rands = rand_gen.uniform(0.0, 1.0, size=(3, value))
-            quats = torch.tensor(random_quaternion(rands))
-            Rs = roma.random_rotmat(value)
-            #Rs = roma.unitquat_to_rotmat(quats)
-            self.model._SO3_grid = Rs.cuda()
-        msg = create_message(ServerMessage.OK, lambda x: None)
+            Rs = roma.random_rotmat(value, device=self.device)
+            self.model._SO3_grid = Rs.to(self.device)
+        msg = create_message(ServerMessage.OK, lambda _: None)
         s.sendall(msg)
 
 
@@ -425,7 +413,8 @@ class MegaposeServer():
         c = CameraData()
         c.K = camera_data['K']
         c.resolution = (camera_data['h'], camera_data['w'])
-        print(c)
+        if self.verbose:
+          print(c)
         c.z_near = 0.001
         c.z_far = 100000
         return c
@@ -487,6 +476,10 @@ if __name__ == '__main__':
     parser.add_argument('--num-workers', type=int, default=4, help='Number of workers for rendering')
     parser.add_argument('--no-warmup', action='store_true', help='Whether to perform model warmup before starting the server. Warmup will avoid a slow first pose estimation.')
     parser.add_argument('--verbose', action='store_true', help='Whether to print additional information such as execution time and results.')
+    parser.add_argument('--device', default=None, type=str, help='Device on which to run Megapose. See Pytorch devices for info')
+
+
+
     args = parser.parse_args()
 
     mesh_dir = Path(args.meshes_directory).absolute()
@@ -505,6 +498,6 @@ if __name__ == '__main__':
     server = MegaposeServer(args.host, args.port, megapose_models[args.model][0],
                             mesh_dir, camera_data, optimize=args.optimize,
                             num_workers=args.num_workers, warmup=not args.no_warmup,
-                            verbose=args.verbose)
+                            verbose=args.verbose, device=args.device)
 
     server.run()
