@@ -80,15 +80,18 @@ def make_object_dataset(meshes_dir: Path) -> RigidObjectDataset:
 
 class ConnectionThread(threading.Thread):
       '''A thread that handles a single client'''
-      def __init__(self, main_server, socket, address, camera_data: CameraData):
+      def __init__(self, main_server: 'MegaposeServer', socket, address, camera_data: CameraData):
         super(ConnectionThread, self).__init__()
         self.main_server = main_server
         self.socket = socket
         self.address = address
-        self.camera_data = camera_data
+        self.camera_data = CameraData(camera_data.K.copy(), camera_data.resolution)
+        self.renderer = None
+        self.daemon = True
 
       def run(self):
         with self.socket:
+          self.renderer = Panda3dSceneRenderer(self.main_server.object_dataset)
           while True:
             try:
               code, buffer = receive_message(self.socket)
@@ -163,6 +166,9 @@ class MegaposeServer():
     self.verbose = verbose
     self.camera_data = self._make_camera_data(camera_data)
     self.renderer = Panda3dSceneRenderer(self.object_dataset)
+    from happypose.toolbox.renderer.panda3d_batch_renderer import Panda3dBatchRenderer
+    self.batch_renderer = Panda3dBatchRenderer(object_dataset=self.object_dataset, n_workers=1, preload_cache=False)
+
     self.lock_megapose = threading.Lock()
     self.lock_aux_renderer = threading.Lock()
 
@@ -305,6 +311,7 @@ class MegaposeServer():
     camera_data.K = client.camera_data.K
     camera_data.resolution = client.camera_data.resolution
 
+    print(labels, poses, camera_data.K)
     camera_data.TWC = Transform(np.eye(4))
     #camera_data.TWC = Transform((0, 0, 0, 1), [0.0, 0, -2])
     object_datas = []
@@ -320,18 +327,22 @@ class MegaposeServer():
           color=((1.0, 1.0, 1.0, 1)),
         ),
       ]
-      renderings = self.renderer.render_scene(
+
+
+
+
+      renderings = client.renderer.render_scene(
         object_datas,
         [camera_data],
         light_datas,
-        render_depth=False,
-        render_binary_mask=False,
-        render_normals=False,
         copy_arrays=True,
-      )[0]
+        render_depth=False,
+        render_normals=False,
+      )
       if view_type == 'wireframe':
         self.renderer._app.toggleWireframe()
-    img = renderings.rgb
+
+      img = renderings[0].rgb
     alphas = np.ones((*img.shape[:2], 1), dtype=np.uint8) * 255
     data = np.concatenate((img, alphas), axis=-1)
 
