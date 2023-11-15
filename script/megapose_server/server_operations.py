@@ -12,6 +12,8 @@ class ServerMessage(Enum):
     SET_SO3_GRID_SIZE = 'SO3G'
     GET_LIST_OBJECTS = 'GLSO'
     RET_LIST_OBJECTS = 'RLSO'
+    GET_RENDER = 'GETR'
+    RET_RENDER = 'RETR'
     ERR = 'RERR'
     OK = 'OKOK'
     EXIT = 'EXIT'

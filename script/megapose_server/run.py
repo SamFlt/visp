@@ -155,6 +155,7 @@ class MegaposeServer():
       ServerMessage.GET_SCORE.value: self._score,
       ServerMessage.SET_SO3_GRID_SIZE.value: self._set_SO3_grid_size,
       ServerMessage.GET_LIST_OBJECTS.value: self._list_objects,
+      ServerMessage.GET_RENDER.value: self._render,
     }
 
     self.device = device
@@ -319,10 +320,7 @@ class MegaposeServer():
     camera_data = CameraData()
     camera_data.K = client.camera_data.K
     camera_data.resolution = client.camera_data.resolution
-
-    print(labels, poses, camera_data.K)
     camera_data.TWC = Transform(np.eye(4))
-    #camera_data.TWC = Transform((0, 0, 0, 1), [0.0, 0, -2])
     object_datas = []
     for label, pose in zip(labels, poses):
       object_datas.append(ObjectData(label=label, TWO=Transform(pose)))
@@ -352,15 +350,96 @@ class MegaposeServer():
       self.rendering_condition.notify()
       self.rendering_condition.wait()
       renderings = self.render_output
-      self.rendering_condition.release()
+      rgb = renderings[0].rgb.copy()
       if view_type == 'wireframe':
         self.renderer._app.toggleWireframe()
-
-      img = renderings[0].rgb
-    alphas = np.ones((*img.shape[:2], 1), dtype=np.uint8) * 255
-    data = np.concatenate((img, alphas), axis=-1)
+      self.rendering_condition.release()
+      alphas = np.ones((*rgb.shape[:2], 1), dtype=np.uint8) * 255
+      data = np.concatenate((rgb, alphas), axis=-1)
 
     msg = create_message(ServerMessage.RET_VIZ, lambda x: pack_image(data, x))
+    client.socket.sendall(msg)
+
+  def _render(self, client: ConnectionThread, buffer: io.BytesIO):
+    json_object = json.loads(read_string(buffer))
+    label = json_object['label']
+    pose = np.array(json_object['pose']).reshape((4, 4))
+    render_rgb, render_depth, render_normals = [json_object[f'render_{t}']  for t in ['rgb', 'depth', 'normals']]
+
+    camera_data = CameraData()
+    camera_data.K = client.camera_data.K
+    camera_data.resolution = client.camera_data.resolution
+
+    camera_data.TWC = Transform(np.eye(4))
+
+    object_datas = [ObjectData(label=label, TWO=Transform(pose))]
+    camera_data, object_datas = convert_scene_observation_to_panda3d(camera_data, object_datas)
+    light_datas = [
+        Panda3dLightData(
+          light_type="ambient",
+          color=((1.0, 1.0, 1.0, 1)),
+        ),
+    ]
+    rgb = None
+    depth = None
+    normals = None
+    with self.lock_aux_renderer:
+
+      self.rendering_condition.acquire()
+      self.render_input = {
+        'object_datas': object_datas,
+        'camera_datas': [camera_data],
+        'light_datas': light_datas,
+        'render_depth': render_depth,
+        'copy_arrays':  True,
+        'render_binary_mask': False,
+        'render_normals': render_normals,
+        'clear': True
+      }
+
+      self.rendering_condition.notify()
+      self.rendering_condition.wait()
+      renderings = self.render_output
+      if render_rgb:
+        rgb = renderings[0].rgb.copy()
+      if render_depth:
+        depth = renderings[0].depth.copy()
+      if render_normals:
+        normals = renderings[0].normals.copy()
+
+      self.rendering_condition.release()
+
+      print(renderings)
+
+    def pack_data(buffer):
+      base_json = {
+        'render_rgb': render_rgb,
+        'render_depth': depth is not None,
+        'render_normals': normals is not None,
+        'cTo': pose.reshape(16).tolist(),
+        'bounding_box': [0.0, 0.0, 0.0, 0.0]
+      }
+      if render_depth:
+        max_depth = np.max(depth)
+        scale_to_m =  max_depth / np.iinfo(np.uint16).max
+        m_to_uint = np.iinfo(np.uint16).max / max_depth
+        base_json['depth_scale'] = scale_to_m
+      pack_string(json.dumps(base_json), buffer)
+      if render_rgb:
+        img = rgb
+        alphas = np.ones((*img.shape[:2], 1), dtype=np.uint8) * 255
+        data = np.concatenate((img, alphas), axis=-1)
+        pack_image(data, buffer)
+      if render_depth:
+        new_depth = (depth * m_to_uint).astype(np.uint16)
+        pack_uint16_image(new_depth)
+      if render_normals:
+        img = normals
+        alphas = np.ones((*img.shape[:2], 1), dtype=np.uint8) * 255
+        data = np.concatenate((img, alphas), axis=-1)
+        pack_image(data, buffer)
+
+    msg = create_message(ServerMessage.RET_RENDER, pack_data)
     client.socket.sendall(msg)
 
 
@@ -494,11 +573,11 @@ class MegaposeServer():
         print('Shutting down server')
     self.listening_thread = threading.Thread(target=run_server)
     self.listening_thread.start()
+
     self.rendering_condition.acquire()
     while True:
       self.rendering_condition.wait()
       assert self.render_input is not None
-
 
       renderings = self.renderer.render_scene(
         **self.render_input

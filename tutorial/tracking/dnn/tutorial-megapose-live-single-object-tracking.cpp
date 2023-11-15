@@ -188,7 +188,7 @@ NLOHMANN_JSON_SERIALIZE_ENUM(DetectionMethod, {
 );
 
 
-int main(int argc, const char *argv [])
+int main(int argc, const char *argv[])
 {
   unsigned width = 640, height = 480;
   vpCameraParameters cam;
@@ -354,7 +354,10 @@ int main(int argc, const char *argv [])
       tracking = true;
 
       if (overlayModel) {
-        overlayImage = megapose->viewObjects({ objectName }, { megaposeEstimate.cTo }, overlayMode);
+        const std::vector<vpMegaPoseObjectRenders::vpRenderType> viewTypes = { vpMegaPoseObjectRenders::RGB, vpMegaPoseObjectRenders::DEPTH, vpMegaPoseObjectRenders::NORMALS };
+        const vpMegaPoseObjectRenders renders = megapose->getObjectRenders(objectName, megaposeEstimate.cTo, viewTypes);
+
+        overlayImage = *(renders.color);
       }
 
       if (megaposeEstimate.score < reinitThreshold) { // If confidence is low, require a reinitialisation with 2D detection

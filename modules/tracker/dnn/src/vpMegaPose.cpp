@@ -302,20 +302,38 @@ void decode(const std::vector<uint8_t> &buffer, unsigned int &index, vpMegaPoseO
   const bool render_depth = j["render_depth"];
   const bool render_normals = j["render_normals"];
   value.cTo = j["cTo"];
-  value.boundingBox = j["bounding_box"];
+  from_megapose_json(j["bounding_box"], value.boundingBox);
   if (render_rgb) {
-    value.color = std::make_shared(new vpImage<vpRGBa>());
+    value.color = std::make_shared<vpImage<vpRGBa>>();
     decode(buffer, index, *(value.color));
   }
   if (render_depth) {
-    value.depth = std::make_shared(new vpImage<uint16_t>());
-    decode(buffer, index, *(value.depth));
+    vpImage<uint16_t> depth_uint;
+    float scale = j["depth_scale"];
+    decode(buffer, index, depth_uint);
+    const uint16_t *src = depth_uint.bitmap;
+    vpImage<float> *depth = new vpImage<float>(depth_uint.getHeight(), depth_uint.getWidth());
+    float *dst = depth->bitmap;
+    for (unsigned i = 0; i < depth_uint.getHeight() * depth_uint.getWidth(); ++i) {
+      dst[i] = (float)(src[i]) * scale;
+    }
+    value.depth = std::shared_ptr<vpImage<float>>(depth);
   }
   if (render_normals) {
     vpImage<vpRGBa> normals_uint;
     decode(buffer, index, normals_uint);
+    const vpRGBa *src = normals_uint.bitmap;
+    vpImage<vpRGBf> *normals = new vpImage<vpRGBf>(normals_uint.getHeight(), normals_uint.getWidth());
+    vpRGBf *dst = normals->bitmap;
+    for (unsigned i = 0; i < normals_uint.getHeight() * normals_uint.getWidth(); ++i) {
+      dst[i].R = ((float)(src[i].R) - 127.5f) / 127.5f;
+      dst[i].G = ((float)(src[i].G) - 127.5f) / 127.5f;
+      dst[i].B = ((float)(src[i].B) - 127.5f) / 127.5f;
 
-    value.normals = std::make_shared(new vpImage<vpRGBf>());
+      //dst[i] = (float)(src[i]) / scale;
+    }
+
+    value.normals = std::shared_ptr<vpImage<vpRGBf>>(normals);
   }
 }
 
@@ -449,7 +467,7 @@ vpMegaPose::vpMegaPose(const std::string &host, int port, const vpCameraParamete
     throw vpException(vpException::ioError, "Could not connect to server at " + host + ":" + std::to_string(port));
   }
   setIntrinsics(cam, height, width);
-  }
+}
 
 vpMegaPose::~vpMegaPose()
 {
