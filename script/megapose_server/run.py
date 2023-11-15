@@ -35,13 +35,13 @@ import struct
 import io
 import sys
 import traceback
-import threading
 from operator import itemgetter
 import pandas as pd
 import torch
 import torch.fx as fx
 import torch.nn as nn
 from torch.fx.experimental.optimization import optimize_for_inference, fuse
+import threading
 
 # MegaPose
 from happypose.toolbox.datasets.object_dataset import RigidObject, RigidObjectDataset
@@ -80,18 +80,16 @@ def make_object_dataset(meshes_dir: Path) -> RigidObjectDataset:
 
 class ConnectionThread(threading.Thread):
       '''A thread that handles a single client'''
-      def __init__(self, main_server: 'MegaposeServer', socket, address, camera_data: CameraData):
+      def __init__(self, main_server: 'MegaposeServer', socket: socket.socket, address: str, camera_data: CameraData):
         super(ConnectionThread, self).__init__()
         self.main_server = main_server
         self.socket = socket
         self.address = address
         self.camera_data = CameraData(camera_data.K.copy(), camera_data.resolution)
         self.renderer = None
-        self.daemon = True
 
       def run(self):
         with self.socket:
-          self.renderer = Panda3dSceneRenderer(self.main_server.object_dataset)
           while True:
             try:
               code, buffer = receive_message(self.socket)
@@ -108,7 +106,16 @@ class ConnectionThread(threading.Thread):
 
 class MegaposeServer():
   '''
-  A TCP-based server that can be interrogated to estimate the pose of an object  with MegaPose
+  A TCP-based server that can be interrogated to estimate the pose of an object  with MegaPose.
+
+  This server is multithreaded. When the run method is called:
+  - A new thread is spawned to listen for client connections
+    - Each new client spawns a new thread to answer its requests
+  - The main thread is reserved for rendering queries as it is the only one that can perform rendering under panda3d
+
+  Two clients cannot perform rendering at the same time
+  Two clients cannot perform pose estimation or scoring at the same time.
+  To prevent these situations mutexes are placed around critical sections to guarantee sequential access
   '''
   def __init__(self, host: str, port: int, model_name: str, mesh_dir: Path, camera_data: Dict,
                 optimize: bool, num_workers: int, image_batch_size=256, warmup=True, verbose=False,
@@ -166,11 +173,13 @@ class MegaposeServer():
     self.verbose = verbose
     self.camera_data = self._make_camera_data(camera_data)
     self.renderer = Panda3dSceneRenderer(self.object_dataset)
-    from happypose.toolbox.renderer.panda3d_batch_renderer import Panda3dBatchRenderer
-    self.batch_renderer = Panda3dBatchRenderer(object_dataset=self.object_dataset, n_workers=1, preload_cache=False)
+
 
     self.lock_megapose = threading.Lock()
     self.lock_aux_renderer = threading.Lock()
+    self.render_input = None
+    self.render_output = None
+    self.rendering_condition = threading.Condition()
 
     if self.optimize:
       print('Optimizing Pytorch models...')
@@ -320,6 +329,8 @@ class MegaposeServer():
     with self.lock_aux_renderer:
       if view_type == 'wireframe':
         self.renderer._app.toggleWireframe()
+
+      self.rendering_condition.acquire()
       camera_data, object_datas = convert_scene_observation_to_panda3d(camera_data, object_datas)
       light_datas = [
         Panda3dLightData(
@@ -327,18 +338,21 @@ class MegaposeServer():
           color=((1.0, 1.0, 1.0, 1)),
         ),
       ]
+      self.render_input = {
+        'object_datas': object_datas,
+        'camera_datas': [camera_data],
+        'light_datas': light_datas,
+        'render_depth': False,
+        'copy_arrays':  True,
+        'render_binary_mask': False,
+        'render_normals': False,
+        'clear': True
+      }
 
-
-
-
-      renderings = client.renderer.render_scene(
-        object_datas,
-        [camera_data],
-        light_datas,
-        copy_arrays=True,
-        render_depth=False,
-        render_normals=False,
-      )
+      self.rendering_condition.notify()
+      self.rendering_condition.wait()
+      renderings = self.render_output
+      self.rendering_condition.release()
       if view_type == 'wireframe':
         self.renderer._app.toggleWireframe()
 
@@ -460,24 +474,42 @@ class MegaposeServer():
 
   def run(self):
     """
-    Starts the server, listening for incoming connections.
+    Starts the serveron another thread, listening for incoming connections.
     """
-    try:
-      with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        s.bind((self.host, self.port))
-        s.listen()
-        print(f'MegaPose server listening for connections on {self.host}:{self.port}')
-        while True:
+    def run_server():
+      try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+          s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+          s.bind((self.host, self.port))
+          s.listen()
+          print(f'MegaPose server listening for connections on {self.host}:{self.port}')
+          while True:
             print('Waiting for connection')
             connection, address = s.accept()
             print(f'Connected to {address}')
             thread = ConnectionThread(self, connection, address, self.camera_data)
             thread.start()
+      except Exception as e:
+        traceback.print_exc()
+        print('Shutting down server')
+    self.listening_thread = threading.Thread(target=run_server)
+    self.listening_thread.start()
+    self.rendering_condition.acquire()
+    while True:
+      self.rendering_condition.wait()
+      assert self.render_input is not None
 
-    except Exception as e:
-      traceback.print_exc()
-      print('Shutting down server')
+
+      renderings = self.renderer.render_scene(
+        **self.render_input
+      )
+      self.render_output = renderings
+      self.rendering_condition.notify()
+
+    self.rendering_condition.release()
+
+
+
 
 if __name__ == '__main__':
   megapose_models = {
