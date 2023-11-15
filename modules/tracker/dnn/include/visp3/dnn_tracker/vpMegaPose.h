@@ -116,6 +116,30 @@ inline void from_json(const nlohmann::json &j, vpMegaPoseEstimate &m)
 }
 
 /**
+ * \class vpMegaPoseObjectRenders
+ * \ingroup module_dnn_tracker
+ * This class contains renderings performed by the megapose server.
+ * Each rendering is optional depending on the user requests
+ */
+class vpMegaPoseObjectRenders
+{
+public:
+  vpMegaPoseObjectRenders() : color(nullptr), depth(nullptr), normals(nullptr) { }
+  std::shared_ptr<vpImage<vpRGBa>> color;
+  std::shared_ptr<vpImage<float>> depth;
+  std::shared_ptr<vpImage<vpRGBf>> normals;
+  vpRect boundingBox;
+  vpHomogeneousMatrix cTo;
+
+  enum vpRenderType
+  {
+    RGB = 0,
+    DEPTH = 1,
+    NORMALS = 2
+  };
+};
+
+/**
   * \class vpMegaPose
   * \ingroup module_dnn_tracker
   * Class to communicate with a MegaPose server.
@@ -153,9 +177,11 @@ public:
     GET_SCORE = 8, //! Ask the server to score a pose estimate
     RET_SCORE = 9, //! Code sent when server returns a pose score
     SET_SO3_GRID_SIZE = 10, //! Ask the server to set the number of samples for coarse estimation
-    GET_LIST_OBJECTS = 11,
-    RET_LIST_OBJECTS = 12,
-    EXIT = 13
+    GET_LIST_OBJECTS = 11, //! Code to query the list of objects known by the server
+    RET_LIST_OBJECTS = 12, //! Code sent when server returns the list of known objects (meshes)
+    GET_RENDER = 13, //! Code to query the renderings of an object by the server at a given pose
+    RET_RENDER = 14, //! Code returned by the server when it serves the renderings of an object
+    EXIT = 15
   };
   /**
   * Instantiates a connection to a MegaPose server.
@@ -215,6 +241,20 @@ public:
 
   vpImage<vpRGBa> viewObjects(const std::vector<std::string> &objectNames,
                               const std::vector<vpHomogeneousMatrix> &poses, const std::string &viewType);
+
+
+  /**
+   * \brief Retrieve the renders of an object, as it is seen by the MegaPose server at a given pose.
+   * While \ref viewObjects allows to get the basic render of multiple objects in one go, this method is dedicated to more complete rendering (depth, normals) of a single object.
+   * @param objectName The object to vizualize
+   * @param pose The pose at which to render the object
+   * @param renderTypes The request renders. See vpMegaPoseObjectRenders::vpRenderType for the available render types.
+   * If a type apppears multiple times in the list, it has no additional impact
+   * @return vpMegaPoseObjectRenders The requested renders of the object at the given pose
+   */
+  vpMegaPoseObjectRenders getObjectRenders(const std::string objectName,
+                                            const vpHomogeneousMatrix &pose,
+                                            const std::vector<vpMegaPoseObjectRenders::vpRenderType> &renderTypes);
 
   /**
   * Set the number of renders used for coarse pose estimation by MegaPose.

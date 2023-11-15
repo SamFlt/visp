@@ -188,6 +188,13 @@ void decode(const std::vector<uint8_t> &buffer, unsigned int &index, int &value)
   index += sizeof(int);
 }
 template<>
+void decode(const std::vector<uint8_t> &buffer, unsigned int &index, uint8_t &value)
+{
+  value = buffer[index];
+  index++;
+}
+
+template<>
 void decode(const std::vector<uint8_t> &buffer, unsigned int &index, float &value)
 {
   const uint8_t *ptr = &buffer[index];
@@ -261,6 +268,56 @@ void decode(const std::vector<uint8_t> &buffer, unsigned int &index, vpImage<vpR
   }
 }
 
+template<>
+void decode(const std::vector<uint8_t> &buffer, unsigned int &index, vpImage<uint16_t> &value)
+{
+  int height, width;
+  decode(buffer, index, height, width);
+  value.resize(height, width);
+  uint8_t received_endianness;
+  decode(buffer, index, received_endianness);
+  const uint16_t hostTest = 1;
+  const uint16_t netTest = htons(hostTest); // network is big endian
+  const uint8_t endianness = hostTest == netTest ? '>' : '<';
+  const unsigned copySize = height * width;
+  memcpy((uint8_t *)value.bitmap, &buffer[index], copySize);
+  index += copySize;
+
+  if (endianness != received_endianness) {
+    for (unsigned int i = 0; i < value.getHeight(); ++i) {
+      for (unsigned int j = 0; j < value.getWidth(); ++j) {
+        value[i][j] = vpEndian::swap16bits(value[i][j]);
+      }
+    }
+  }
+}
+
+template<>
+void decode(const std::vector<uint8_t> &buffer, unsigned int &index, vpMegaPoseObjectRenders &value)
+{
+  std::string jsonStr;
+  decode(buffer, index, jsonStr);
+  json j = json::parse(jsonStr);
+  const bool render_rgb = j["render_rgb"];
+  const bool render_depth = j["render_depth"];
+  const bool render_normals = j["render_normals"];
+  value.cTo = j["cTo"];
+  value.boundingBox = j["bounding_box"];
+  if (render_rgb) {
+    value.color = std::make_shared(new vpImage<vpRGBa>());
+    decode(buffer, index, *(value.color));
+  }
+  if (render_depth) {
+    value.depth = std::make_shared(new vpImage<uint16_t>());
+    decode(buffer, index, *(value.depth));
+  }
+  if (render_normals) {
+    vpImage<vpRGBa> normals_uint;
+    decode(buffer, index, normals_uint);
+
+    value.normals = std::make_shared(new vpImage<vpRGBf>());
+  }
+}
 
 #define MEGAPOSE_CODE_SIZE 4
 void handleWrongReturnMessage(const vpMegaPose::ServerMessage code, std::vector<uint8_t> &buffer)
@@ -288,6 +345,8 @@ const std::unordered_map<vpMegaPose::ServerMessage, std::string> vpMegaPose::m_c
     {ServerMessage::SET_SO3_GRID_SIZE, "SO3G"},
     {ServerMessage::GET_LIST_OBJECTS, "GLSO"},
     {ServerMessage::RET_LIST_OBJECTS, "RLSO"},
+    {ServerMessage::GET_RENDER, "GETR"},
+    {ServerMessage::RET_RENDER, "RETR"},
     {ServerMessage::EXIT, "EXIT"},
 
 };
@@ -326,7 +385,7 @@ std::pair<vpMegaPose::ServerMessage, std::vector<uint8_t>> vpMegaPose::readMessa
 #if !defined(_WIN32) && (defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__))) // UNIX
   size_t readCount = read(m_serverSocket, &size, sizeof(uint32_t));
 #else
-  size_t readCount = recv(m_serverSocket, reinterpret_cast<char*>(&size), sizeof(uint32_t), 0);
+  size_t readCount = recv(m_serverSocket, reinterpret_cast<char *>(&size), sizeof(uint32_t), 0);
 #endif
   if (readCount != sizeof(uint32_t)) {
     throw vpException(vpException::ioError, "MegaPose: Error while reading data from socket");
@@ -337,7 +396,7 @@ std::pair<vpMegaPose::ServerMessage, std::vector<uint8_t>> vpMegaPose::readMessa
 #if !defined(_WIN32) && (defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__))) // UNIX
   readCount = read(m_serverSocket, code, MEGAPOSE_CODE_SIZE);
 #else
-  readCount = recv(m_serverSocket, reinterpret_cast<char*>(code), MEGAPOSE_CODE_SIZE, 0);
+  readCount = recv(m_serverSocket, reinterpret_cast<char *>(code), MEGAPOSE_CODE_SIZE, 0);
 #endif
   if (readCount != MEGAPOSE_CODE_SIZE) {
     throw vpException(vpException::ioError, "MegaPose: Error while reading data from socket");
@@ -351,7 +410,7 @@ std::pair<vpMegaPose::ServerMessage, std::vector<uint8_t>> vpMegaPose::readMessa
 #if !defined(_WIN32) && (defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__))) // UNIX
     int actually_read = read(m_serverSocket, &data[read_total], read_size);
 #else
-    int actually_read = recv(m_serverSocket, reinterpret_cast<char*>(&data[read_total]), read_size, 0);
+    int actually_read = recv(m_serverSocket, reinterpret_cast<char *>(&data[read_total]), read_size, 0);
 #endif
     if (actually_read <= 0) {
       throw vpException(vpException::ioError, "MegaPose: Error while reading data from socket");
@@ -572,6 +631,48 @@ vpImage<vpRGBa> vpMegaPose::viewObjects(const std::vector<std::string>&objectNam
     handleWrongReturnMessage(code, data_result);
   }
   vpImage<vpRGBa> result;
+  unsigned int index = 0;
+  decode(data_result, index, result);
+  return result;
+}
+
+
+vpMegaPoseObjectRenders vpMegaPose::getObjectRenders(const std::string objectName,
+                                        const vpHomogeneousMatrix &pose, const std::vector<vpMegaPoseObjectRenders::vpRenderType> &renderTypes)
+{
+  const std::lock_guard<std::mutex> lock(m_mutex);
+  std::vector<uint8_t> data;
+  json j;
+  j["label"] = objectName;
+  json j_pose;
+  to_megapose_json(j_pose, pose);
+  j["pose"] = j_pose;
+  bool render_rgb = false, render_depth = false, render_normals = false;
+  for (const auto &type: renderTypes) {
+    if (type == vpMegaPoseObjectRenders::DEPTH) {
+      render_depth = true;
+    }
+    else if (type == vpMegaPoseObjectRenders::RGB) {
+      render_rgb = true;
+    }
+    else if (type == vpMegaPoseObjectRenders::NORMALS) {
+      render_normals = true;
+    }
+  }
+  j["render_rgb"] = render_rgb;
+  j["render_depth"] = render_depth;
+  j["render_normals"] = render_normals;
+  encode(data, j.dump());
+  makeMessage(ServerMessage::GET_RENDER, data);
+  send(m_serverSocket, reinterpret_cast<const char *>(data.data()), static_cast<int>(data.size()), 0);
+  ServerMessage code;
+  std::vector<uint8_t> data_result;
+  std::tie(code, data_result) = readMessage();
+
+  if (code != ServerMessage::RET_RENDER) {
+    handleWrongReturnMessage(code, data_result);
+  }
+  vpMegaPoseObjectRenders result;
   unsigned int index = 0;
   decode(data_result, index, result);
   return result;

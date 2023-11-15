@@ -38,16 +38,16 @@
 
 std::future<vpMegaPoseEstimate> vpMegaPoseTracker::init(const vpImage<vpRGBa> &I, const vpRect &bb)
 {
-  return std::async(std::launch::async, [&I, &bb, this]() -> vpMegaPoseEstimate {
-    std::vector<vpRect> bbs = {bb};
-    m_poseEstimate = m_megapose->estimatePoses(I, {m_objectLabel}, nullptr, 0.0, &bbs, nullptr)[0];
+  return std::async(std::launch::async, [I, &bb, this]() -> vpMegaPoseEstimate {
+    std::vector<vpRect> bbs = { bb };
+    m_poseEstimate = m_megapose->estimatePoses(I, { m_objectLabel }, nullptr, 0.0, &bbs, nullptr)[0];
     m_initialized = true;
     return m_poseEstimate;
   });
 }
 std::future<vpMegaPoseEstimate> vpMegaPoseTracker::init(const vpImage<vpRGBa> &I, const vpHomogeneousMatrix &cTo)
 {
-  return std::async(std::launch::async, [&I, &cTo, this]() -> vpMegaPoseEstimate {
+  return std::async(std::launch::async, [I, &cTo, this]() -> vpMegaPoseEstimate {
     std::vector<vpHomogeneousMatrix> poses = { cTo };
     m_poseEstimate = m_megapose->estimatePoses(I, { m_objectLabel }, nullptr, 0.0, nullptr, &poses)[0];
     m_initialized = true;
@@ -60,9 +60,9 @@ std::future<vpMegaPoseEstimate> vpMegaPoseTracker::track(const vpImage<vpRGBa> &
   if (!m_initialized) {
     throw vpException(vpException::notInitialized, "MegaPose tracker was not initialized. Call init before calling track.");
   }
-  return std::async(std::launch::async, [&I, this]() -> vpMegaPoseEstimate {
-    std::vector<vpHomogeneousMatrix> poses = {m_poseEstimate.cTo};
-    m_poseEstimate = m_megapose->estimatePoses(I, {m_objectLabel}, nullptr, 0.0, nullptr, &poses, m_refinerIterations)[0];
+  return std::async(std::launch::async, [I, this]() -> vpMegaPoseEstimate {
+    std::vector<vpHomogeneousMatrix> poses = { m_poseEstimate.cTo };
+    m_poseEstimate = m_megapose->estimatePoses(I, { m_objectLabel }, nullptr, 0.0, nullptr, &poses, m_refinerIterations)[0];
     return m_poseEstimate;
   });
 }
@@ -71,4 +71,3 @@ void vpMegaPoseTracker::updatePose(const vpHomogeneousMatrix &cTo)
 {
   m_poseEstimate.cTo = cTo;
 }
-
