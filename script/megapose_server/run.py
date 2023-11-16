@@ -401,15 +401,14 @@ class MegaposeServer():
       self.rendering_condition.wait()
       renderings = self.render_output
       if render_rgb:
-        rgb = renderings[0].rgb.copy()
+        rgb = renderings[0].rgb
       if render_depth:
-        depth = renderings[0].depth.copy()
+        depth = renderings[0].depth
       if render_normals:
-        normals = renderings[0].normals.copy()
+        normals = renderings[0].normals
 
       self.rendering_condition.release()
 
-      print(renderings)
 
     def pack_data(buffer):
       base_json = {
@@ -419,24 +418,25 @@ class MegaposeServer():
         'cTo': pose.reshape(16).tolist(),
         'bounding_box': [0.0, 0.0, 0.0, 0.0]
       }
-      if render_depth:
+      if depth is not None:
         max_depth = np.max(depth)
         scale_to_m =  max_depth / np.iinfo(np.uint16).max
         m_to_uint = np.iinfo(np.uint16).max / max_depth
         base_json['depth_scale'] = scale_to_m
       pack_string(json.dumps(base_json), buffer)
+
       if render_rgb:
-        img = rgb
-        alphas = np.ones((*img.shape[:2], 1), dtype=np.uint8) * 255
-        data = np.concatenate((img, alphas), axis=-1)
+        alphas = np.ones((*rgb.shape[:2], 1), dtype=np.uint8) * 255
+        data = np.concatenate((rgb, alphas), axis=-1)
         pack_image(data, buffer)
-      if render_depth:
+
+      if depth is not None:
         new_depth = (depth * m_to_uint).astype(np.uint16)
-        pack_uint16_image(new_depth)
-      if render_normals:
-        img = normals
-        alphas = np.ones((*img.shape[:2], 1), dtype=np.uint8) * 255
-        data = np.concatenate((img, alphas), axis=-1)
+        pack_uint16_image(new_depth.reshape(*new_depth.shape[:2]), buffer)
+
+      if normals is not None:
+        alphas = np.ones((*normals.shape[:2], 1), dtype=np.uint8) * 255
+        data = np.concatenate((normals, alphas), axis=-1)
         pack_image(data, buffer)
 
     msg = create_message(ServerMessage.RET_RENDER, pack_data)

@@ -123,20 +123,85 @@ inline void from_json(const nlohmann::json &j, vpMegaPoseEstimate &m)
  */
 class vpMegaPoseObjectRenders
 {
+private:
+  float depth_scale;
 public:
-  vpMegaPoseObjectRenders() : color(nullptr), depth(nullptr), normals(nullptr) { }
-  std::shared_ptr<vpImage<vpRGBa>> color;
-  std::shared_ptr<vpImage<float>> depth;
-  std::shared_ptr<vpImage<vpRGBf>> normals;
-  vpRect boundingBox;
-  vpHomogeneousMatrix cTo;
-
   enum vpRenderType
   {
     RGB = 0,
     DEPTH = 1,
     NORMALS = 2
   };
+
+
+  vpMegaPoseObjectRenders() : color(), depth(), normals() { }
+
+  void setDepthScale(float scale)
+  {
+    depth_scale = scale;
+  }
+  float getDepthScale() const
+  {
+    return depth_scale;
+  }
+  vpImage<vpRGBf> getNormals() const
+  {
+    vpImage<vpRGBf> res_normals(normals.getHeight(), normals.getWidth());
+    const vpRGBa *src = normals.bitmap;
+    std::cout << "SRC height = " << normals.getHeight() << std::endl;
+    vpRGBf *dst = res_normals.bitmap;
+    for (unsigned i = 0; i < normals.getHeight() * normals.getWidth(); ++i) {
+      dst[i].R = ((float)(src[i].R) - 127.5f) / 127.5f;
+      dst[i].G = ((float)(src[i].G) - 127.5f) / 127.5f;
+      dst[i].B = ((float)(src[i].B) - 127.5f) / 127.5f;
+    }
+    return res_normals;
+  }
+  /**
+   * @brief Convert the raw depth frame to a depth frame in meters
+   *
+   * @return vpImage<float> the depth in meters
+   */
+  vpImage<float> getDepth() const
+  {
+    vpImage<float> res_depth(depth.getHeight(), depth.getWidth());
+    std::cout << depth.getHeight() << std::endl;;
+    const uint16_t *src = depth.bitmap;
+    float *dst = res_depth.bitmap;
+    for (unsigned i = 0; i < depth.getHeight() * depth.getWidth(); ++i) {
+      dst[i] = (float)(src[i]) * depth_scale;
+    }
+    return res_depth;
+  }
+
+  /**
+   * @brief Returns whether this render container holds a render of the specified type, given in parameter
+   *
+   * @param renderType the render type to check for
+   * @return true if this objects holds a render of the query type
+   * @return false otherwise
+   */
+  bool contains(vpRenderType renderType) const
+  {
+    switch (renderType) {
+    case RGB: return color.getNumberOfPixel() > 0;
+      break;
+    case DEPTH: return depth.getNumberOfPixel() > 0;
+      break;
+    case NORMALS: return normals.getNumberOfPixel() > 0;
+      break;
+    default:
+      return false;
+    }
+  }
+
+
+  vpImage<vpRGBa> color;
+  vpImage<uint16_t> depth;
+  vpImage<vpRGBa> normals;
+  vpRect boundingBox;
+  vpHomogeneousMatrix cTo;
+
 };
 
 /**

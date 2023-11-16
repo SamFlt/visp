@@ -1,3 +1,4 @@
+import sys
 import io
 import struct
 from typing import Callable, List, Tuple
@@ -16,6 +17,7 @@ def read_string(buffer: io.BytesIO):
     str_count = struct.unpack('>I', buffer.read(struct.calcsize('I')))[0]
     data = struct.unpack(f'{str_count}s', buffer.read(str_count))[0]
     return data.decode('ascii')
+
 def pack_string(s: str, buffer: bytearray):
     '''
     Pack a string into a buffer
@@ -70,6 +72,18 @@ def pack_image(image, buffer: bytearray):
     image = image.astype(np.uint8)
     assert len(image.shape) == 3
     buffer.extend(struct.pack('>3I', *image.shape))
+    buffer.extend(image.tobytes('C'))
+
+def pack_uint16_image(image, buffer: bytearray):
+    '''
+    Pack an image into a buffer
+    '''
+    image = image.astype(np.uint16)
+    assert len(image.shape) == 2
+    buffer.extend(struct.pack('>2I', *image.shape))
+
+    endianness = '<' if sys.byteorder == 'little' else '>'
+    buffer.extend(struct.pack('c', bytes(endianness, encoding='ascii')))
     buffer.extend(image.tobytes('C'))
 
 def create_message(message_code: ServerMessage, fn: Callable[[bytearray], None]):
