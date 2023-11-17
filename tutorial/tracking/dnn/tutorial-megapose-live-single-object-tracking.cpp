@@ -8,6 +8,7 @@
 #include <optional>
 
 #include <visp3/core/vpIoTools.h>
+#include <visp3/core/vpPixelMeterConversion.h>
 #include <visp3/detection/vpDetectorDNNOpenCV.h>
 #include <visp3/gui/vpDisplayGDI.h>
 #include <visp3/gui/vpDisplayOpenCV.h>
@@ -319,7 +320,7 @@ int main(int argc, const char *argv[])
 
   bool overlayModel = true;
   vpImage<vpRGBa> overlayImage(height, width);
-  std::string overlayMode = "full";
+  vpMegaPoseObjectRenders::vpRenderType renderType = vpMegaPoseObjectRenders::RGB;
 
   std::vector<double> megaposeTimes;
   std::vector<double> frameTimes;
@@ -345,6 +346,7 @@ int main(int argc, const char *argv[])
     //! [Acquisition]
     // Check whether Megapose is still running
     //! [Check megapose]
+
     if (!callMegapose && trackerFuture.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready) {
       megaposeEstimate = trackerFuture.get();
       if (tracking) {
@@ -354,10 +356,26 @@ int main(int argc, const char *argv[])
       tracking = true;
 
       if (overlayModel) {
-        const std::vector<vpMegaPoseObjectRenders::vpRenderType> viewTypes = { vpMegaPoseObjectRenders::RGB, vpMegaPoseObjectRenders::DEPTH, vpMegaPoseObjectRenders::NORMALS };
-        const vpMegaPoseObjectRenders renders = megapose->getObjectRenders(objectName, megaposeEstimate.cTo, viewTypes);
-
-        overlayImage = *(renders.color);
+        vpMegaPoseObjectRenders renders = megapose->getObjectRenders(objectName, megaposeEstimate.cTo, { renderType, vpMegaPoseObjectRenders::DEPTH });
+        switch (renderType) {
+        case vpMegaPoseObjectRenders::RGB:
+        {
+          overlayImage = renders.color;
+          break;
+        }
+        case vpMegaPoseObjectRenders::DEPTH:
+        {
+          vpImage<unsigned char> g;
+          vpImageConvert::convert(renders.depth, g);
+          vpImageConvert::convert(g, overlayImage);
+          break;
+        }
+        case vpMegaPoseObjectRenders::NORMALS:
+        {
+          overlayImage = renders.normals;
+          break;
+        }
+        }
       }
 
       if (megaposeEstimate.score < reinitThreshold) { // If confidence is low, require a reinitialisation with 2D detection
@@ -385,7 +403,6 @@ int main(int argc, const char *argv[])
           lastDetection = *detection;
           trackerFuture = megaposeTracker.init(I, lastDetection);
           callMegapose = false;
-
         }
       }
       else {
@@ -404,7 +421,14 @@ int main(int argc, const char *argv[])
         overlayModel = !overlayModel;
       }
       else if (keyboardEvent == "w") {
-        overlayMode = overlayMode == "full" ? "wireframe" : "full";
+        switch (renderType) {
+        case vpMegaPoseObjectRenders::RGB: renderType = vpMegaPoseObjectRenders::DEPTH;
+          break;
+        case vpMegaPoseObjectRenders::DEPTH: renderType = vpMegaPoseObjectRenders::NORMALS;
+          break;
+        case vpMegaPoseObjectRenders::NORMALS: renderType = vpMegaPoseObjectRenders::RGB;
+          break;
+        }
       }
     }
 
@@ -417,7 +441,6 @@ int main(int argc, const char *argv[])
       vpDisplay::displayText(I, 30, 20, "Press T: Toggle overlay", vpColor::red);
       vpDisplay::displayText(I, 40, 20, "Press W: Toggle wireframe", vpColor::red);
       vpDisplay::displayFrame(I, megaposeEstimate.cTo, cam, 0.05, vpColor::none, 3);
-      //vpDisplay::displayRectangle(I, lastDetection, vpColor::red);
       displayScore(I, megaposeEstimate.score);
     }
     //! [Display]

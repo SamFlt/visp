@@ -390,7 +390,7 @@ class MegaposeServer():
         'object_datas': object_datas,
         'camera_datas': [camera_data],
         'light_datas': light_datas,
-        'render_depth': render_depth,
+        'render_depth': True,
         'copy_arrays':  True,
         'render_binary_mask': False,
         'render_normals': render_normals,
@@ -409,16 +409,23 @@ class MegaposeServer():
 
       self.rendering_condition.release()
 
+    def get_bb_from_depth():
+      rows = np.any(depth, axis=1)
+      cols = np.any(depth, axis=0)
+      rmin, rmax = np.where(rows)[0][[0, -1]]
+      cmin, cmax = np.where(cols)[0][[0, -1]]
+
+      return [float(x) for x in (cmin, rmin, cmax, rmax)]
 
     def pack_data(buffer):
       base_json = {
         'render_rgb': render_rgb,
-        'render_depth': depth is not None,
+        'render_depth': render_depth,
         'render_normals': normals is not None,
         'cTo': pose.reshape(16).tolist(),
-        'bounding_box': [0.0, 0.0, 0.0, 0.0]
+        'bounding_box': get_bb_from_depth()
       }
-      if depth is not None:
+      if render_depth:
         max_depth = np.max(depth)
         scale_to_m =  max_depth / np.iinfo(np.uint16).max
         m_to_uint = np.iinfo(np.uint16).max / max_depth
@@ -430,7 +437,7 @@ class MegaposeServer():
         data = np.concatenate((rgb, alphas), axis=-1)
         pack_image(data, buffer)
 
-      if depth is not None:
+      if render_depth:
         new_depth = (depth * m_to_uint).astype(np.uint16)
         pack_uint16_image(new_depth.reshape(*new_depth.shape[:2]), buffer)
 
