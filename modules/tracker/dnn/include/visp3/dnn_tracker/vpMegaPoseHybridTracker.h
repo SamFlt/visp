@@ -1,5 +1,7 @@
 #ifndef _vpMegaPoseHybridTracker_h_
 #define _vpMegaPoseHybridTracker_h_
+#include <condition_variable>
+#include <thread>
 
 #include <visp3/dnn_tracker/vpMegaPose.h>
 
@@ -13,9 +15,9 @@ public:
     : m_host(host), m_port(port), m_cam(cam), m_height(height), m_width(width), m_objectLabel(label)
   { }
 
-  vpMegaPose &&make_megapose_connection() const
+  vpMegaPose makeMegaPoseConnection() const
   {
-    return std::move(vpMegaPose(m_host, m_port, m_cam, m_height, m_width));
+    return vpMegaPose(m_host, m_port, m_cam, m_height, m_width);
   }
 
   std::string m_host;
@@ -64,35 +66,52 @@ private:
   {
   public:
     vpMegaPoseKeyPointTracker(vpMegaPoseHybridTracker *parent, const vpMegaPoseHybridParams &parameters) :
-      m_megaposeRendering(parameters.make_megapose_connection()), m_parent(parent)
+      m_megaposeRendering(std::move(parameters.makeMegaPoseConnection())), m_parent(parent)
     { }
 
     void init(const vpImage<vpRGBa> &I, const vpHomogeneousMatrix &cTo);
+    void track(const vpImage<vpRGBa> &I);
     void onMegaTrackerNewPoseEstimation();
     void onMegaTrackerFailure();
 
 
-    vpMegaPose m_megaposeRendering; //! Connection to megapose, used for rendering images and extract reference keypoints
+    vpMegaPose m_megaposeRendering; //! Connection to megapose, used for rendering images and extracting reference keypoints
     vpMegaPoseHybridTracker *m_parent;
-
   };
 
   class vpMegaPoseRawTracker
   {
   public:
     vpMegaPoseRawTracker(vpMegaPoseHybridTracker *parent, const vpMegaPoseHybridParams &parameters) :
-      m_megaposeTracking(parameters.make_megapose_connection()), m_parent(parent)
-    { }
+      m_megaposeTracking(std::move(parameters.makeMegaPoseConnection())), m_parent(parent), m_newImagePending(false),
+      m_trackingThread(&vpMegaPoseRawTracker::trackingThreadFn, this)
+    {
+
+
+    }
 
     void init(const vpImage<vpRGBa> &I, const vpRect &bbox);
+    void track(const vpImage<vpRGBa> &I);
     void onKeyPointTrackerNewPoseEstimation();
     void onKeyPointTrackerFailure();
-
+    void trackingThreadFn();
+    bool diverged()
+    {
+      std::lock_guard lock(m_resultMutex);
+      return m_lastEstimate.score < 0.5;
+    }
+  private:
     vpMegaPose m_megaposeTracking; //! Connection to MegaPose, used to retrieve the raw MegaPose tracking results
     vpMegaPoseHybridTracker *m_parent;
-    vpMegaPoseEstimate last_estimate; //! Last estimate provided by megapose
-  };
+    vpImage<vpRGBa> m_inputImage;
+    vpRect m_inputDetection;
+    bool m_newImagePending;
+    std::mutex m_inputMutex, m_resultMutex;
+    std::condition_variable m_inputCond, m_resultCond;
+    std::thread m_trackingThread;
 
+    vpMegaPoseEstimate m_lastEstimate; //! Last estimate provided by megapose
+  };
   vpMegaPoseHybridParams m_parameters;
   vpMegaPoseKeyPointTracker m_kpTracker;
   vpMegaPoseRawTracker m_megaTracker;
