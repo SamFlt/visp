@@ -259,6 +259,13 @@ public:
   */
   vpMegaPose(const std::string &host, int port, const vpCameraParameters &cam, unsigned height, unsigned width);
 
+  // Disallow copy constructor
+  vpMegaPose(const vpMegaPose &other);
+
+  vpMegaPose(vpMegaPose &&other);
+
+  vpMegaPose &operator=(const vpMegaPose &other) = delete;
+
   /**
   * Estimate the poses of objects (in the frame of the camera c) with MegaPose.
   * The object origins used to estimate the poses are those used by the MegaPose server.
@@ -339,8 +346,14 @@ private:
   // Server connection data
   int m_serverSocket;
   int m_fd;
+  bool m_owns_socket; // True if the connection can be closed in a valid way (see move semantics)
 
   std::mutex m_mutex; // Since client-server communications are synchronous, avoid multiple parallel communications
+
+  const std::string m_address;
+  const unsigned int m_port;
+  const vpCameraParameters m_cam;
+  const unsigned int m_h, m_w;
 
   void makeMessage(const vpMegaPose::ServerMessage messageType, std::vector<uint8_t> &data) const;
   std::pair<vpMegaPose::ServerMessage, std::vector<uint8_t>> readMessage() const;

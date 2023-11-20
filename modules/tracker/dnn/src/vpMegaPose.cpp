@@ -421,7 +421,8 @@ std::pair<vpMegaPose::ServerMessage, std::vector<uint8_t>> vpMegaPose::readMessa
   return std::make_pair(c, data);
 }
 
-vpMegaPose::vpMegaPose(const std::string &host, int port, const vpCameraParameters &cam, unsigned height, unsigned width)
+vpMegaPose::vpMegaPose(const std::string &host, int port, const vpCameraParameters &cam, unsigned height, unsigned width) :
+  m_owns_socket(true), m_address(host), m_port(port), m_cam(cam), m_h(height), m_w(width)
 {
 #if defined(_WIN32)
   WSADATA WSAData;
@@ -450,8 +451,27 @@ vpMegaPose::vpMegaPose(const std::string &host, int port, const vpCameraParamete
   setIntrinsics(cam, height, width);
   }
 
+
+
+vpMegaPose::vpMegaPose(const vpMegaPose &other) : vpMegaPose(other.m_address, other.m_port, other.m_cam, other.m_h, other.m_w)
+{
+
+}
+vpMegaPose::vpMegaPose(vpMegaPose &&other) : m_serverSocket(other.m_serverSocket), m_fd(other.m_fd), m_owns_socket(true),
+m_address(std::move(m_address)), m_port(std::move(m_port)),
+m_cam(std::move(other.m_cam)), m_h(other.m_h), m_w(other.m_w)
+{
+  other.m_owns_socket = false;
+  other.m_fd = -1;
+  other.m_serverSocket = -1;
+}
+
+
 vpMegaPose::~vpMegaPose()
 {
+  if (!m_owns_socket) {
+    return;
+  }
   std::vector<uint8_t> data;
   makeMessage(ServerMessage::EXIT, data);
   send(m_serverSocket, reinterpret_cast<const char *>(data.data()), static_cast<int>(data.size()), 0);
@@ -464,9 +484,9 @@ vpMegaPose::~vpMegaPose()
 }
 
 std::vector<vpMegaPoseEstimate>
-vpMegaPose::estimatePoses(const vpImage<vpRGBa>&image, const std::vector<std::string>&labels,
-                          const vpImage<uint16_t>*const depth, const double depth_to_m,
-                          const std::vector<vpRect>*const detections, const std::vector<vpHomogeneousMatrix>*const initial_cTos,
+vpMegaPose::estimatePoses(const vpImage<vpRGBa> &image, const std::vector<std::string> &labels,
+                          const vpImage<uint16_t> *const depth, const double depth_to_m,
+                          const std::vector<vpRect> *const detections, const std::vector<vpHomogeneousMatrix> *const initial_cTos,
                           int refinerIterations)
 {
   const std::lock_guard<std::mutex> lock(m_mutex);
@@ -540,8 +560,8 @@ vpMegaPose::estimatePoses(const vpImage<vpRGBa>&image, const std::vector<std::st
   return result;
 }
 
-std::vector<double> vpMegaPose::scorePoses(const vpImage<vpRGBa>&image,
-  const std::vector<std::string>&labels, const std::vector<vpHomogeneousMatrix>&cTos)
+std::vector<double> vpMegaPose::scorePoses(const vpImage<vpRGBa> &image,
+  const std::vector<std::string> &labels, const std::vector<vpHomogeneousMatrix> &cTos)
 {
   const std::lock_guard<std::mutex> lock(m_mutex);
   std::vector<uint8_t> data;
@@ -579,7 +599,7 @@ std::vector<double> vpMegaPose::scorePoses(const vpImage<vpRGBa>&image,
 }
 
 
-void vpMegaPose::setIntrinsics(const vpCameraParameters& cam, unsigned height, unsigned width)
+void vpMegaPose::setIntrinsics(const vpCameraParameters &cam, unsigned height, unsigned width)
 {
   const std::lock_guard<std::mutex> lock(m_mutex);
   std::vector<uint8_t> data;
@@ -604,8 +624,8 @@ void vpMegaPose::setIntrinsics(const vpCameraParameters& cam, unsigned height, u
   }
 }
 
-vpImage<vpRGBa> vpMegaPose::viewObjects(const std::vector<std::string>&objectNames,
-                                        const std::vector<vpHomogeneousMatrix>&poses, const std::string& viewType)
+vpImage<vpRGBa> vpMegaPose::viewObjects(const std::vector<std::string> &objectNames,
+                                        const std::vector<vpHomogeneousMatrix> &poses, const std::string &viewType)
 {
   const std::lock_guard<std::mutex> lock(m_mutex);
   std::vector<uint8_t> data;

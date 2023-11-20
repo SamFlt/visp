@@ -356,7 +356,9 @@ int main(int argc, const char *argv[])
       tracking = true;
 
       if (overlayModel) {
+        const double ttt = vpTime::measureTimeMs();
         vpMegaPoseObjectRenders renders = megapose->getObjectRenders(objectName, megaposeEstimate.cTo, { renderType, vpMegaPoseObjectRenders::DEPTH });
+        std::cout << "time render : " << (vpTime::measureTimeMs() - ttt) << std::endl;
         switch (renderType) {
         case vpMegaPoseObjectRenders::RGB:
         {

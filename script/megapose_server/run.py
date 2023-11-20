@@ -361,6 +361,7 @@ class MegaposeServer():
     client.socket.sendall(msg)
 
   def _render(self, client: ConnectionThread, buffer: io.BytesIO):
+    ttt = time.time()
     json_object = json.loads(read_string(buffer))
     label = json_object['label']
     pose = np.array(json_object['pose']).reshape((4, 4))
@@ -447,6 +448,7 @@ class MegaposeServer():
         pack_image(data, buffer)
 
     msg = create_message(ServerMessage.RET_RENDER, pack_data)
+    print(f'Rendering took: {(time.time() - ttt) * 1000.0}ms')
     client.socket.sendall(msg)
 
 
