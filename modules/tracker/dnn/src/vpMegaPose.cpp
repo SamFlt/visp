@@ -422,7 +422,7 @@ std::pair<vpMegaPose::ServerMessage, std::vector<uint8_t>> vpMegaPose::readMessa
 }
 
 vpMegaPose::vpMegaPose(const std::string &host, int port, const vpCameraParameters &cam, unsigned height, unsigned width) :
-  m_owns_socket(true), m_address(host), m_port(port), m_cam(cam), m_h(height), m_w(width)
+  m_ownsSocket(true), m_address(host), m_port(port), m_cam(cam), m_h(height), m_w(width)
 {
 #if defined(_WIN32)
   WSADATA WSAData;
@@ -457,11 +457,11 @@ vpMegaPose::vpMegaPose(const vpMegaPose &other) : vpMegaPose(other.m_address, ot
 {
 
 }
-vpMegaPose::vpMegaPose(vpMegaPose &&other) : m_serverSocket(other.m_serverSocket), m_fd(other.m_fd), m_owns_socket(true),
-m_address(std::move(m_address)), m_port(std::move(m_port)),
+vpMegaPose::vpMegaPose(vpMegaPose &&other) : m_serverSocket(other.m_serverSocket), m_fd(other.m_fd), m_ownsSocket(true),
+m_address(std::move(other.m_address)), m_port(std::move(other.m_port)),
 m_cam(std::move(other.m_cam)), m_h(other.m_h), m_w(other.m_w)
 {
-  other.m_owns_socket = false;
+  other.m_ownsSocket = false;
   other.m_fd = -1;
   other.m_serverSocket = -1;
 }
@@ -469,7 +469,7 @@ m_cam(std::move(other.m_cam)), m_h(other.m_h), m_w(other.m_w)
 
 vpMegaPose::~vpMegaPose()
 {
-  if (!m_owns_socket) {
+  if (!m_ownsSocket) {
     return;
   }
   std::vector<uint8_t> data;

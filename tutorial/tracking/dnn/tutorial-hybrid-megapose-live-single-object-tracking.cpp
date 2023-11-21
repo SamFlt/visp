@@ -14,7 +14,7 @@
 #include <visp3/gui/vpDisplayOpenCV.h>
 #include <visp3/gui/vpDisplayX.h>
 #include <visp3/dnn_tracker/vpMegaPose.h>
-#include <visp3/dnn_tracker/vpMegaPoseTracker.h>
+#include <visp3/dnn_tracker/vpMegaPoseHybridTracker.h>
 #include <visp3/io/vpJsonArgumentParser.h>
 
 #include <nlohmann/json.hpp>
@@ -258,6 +258,7 @@ int main(int argc, const char *argv[])
   double videoFrametime = 0; // Only for prerecorded videos
   if (vpMath::isNumber(videoDevice)) {
     hasCaptureOpeningSucceeded = capture.open(std::atoi(videoDevice.c_str()));
+    capture.set(cv::CAP_PROP_FPS, int(60));
     isLiveCapture = true;
   }
   else {
@@ -293,22 +294,16 @@ int main(int argc, const char *argv[])
     dnn.setSwapRB(detectorSwapRB);
   }
 #endif
-  //! [Instantiate megapose]
-  std::shared_ptr<vpMegaPose> megapose;
-  try {
-    megapose = std::make_shared<vpMegaPose>(megaposeAddress, megaposePort, cam, height, width);
-  }
-  catch (...) {
-    throw vpException(vpException::ioError, "Could not connect to Megapose server at " + megaposeAddress + " on port " + std::to_string(megaposePort));
-  }
+  vpMegaPoseHybridParams trackerParams(megaposeAddress, megaposePort, cam, height, width, objectName);
+  vpMegaPose megapose = std::move(trackerParams.makeMegaPoseConnection());
+  vpMegaPoseHybridTracker megaposeTracker(trackerParams);
 
-  vpMegaPoseTracker megaposeTracker(megapose, objectName, refinerIterations);
-  megapose->setCoarseNumSamples(coarseNumSamples);
-  const std::vector<std::string> allObjects = megapose->getObjectNames();
+  megapose.setCoarseNumSamples(coarseNumSamples);
+
+  const std::vector<std::string> allObjects = megapose.getObjectNames();
   if (std::find(allObjects.begin(), allObjects.end(), objectName) == allObjects.end()) {
     throw vpException(vpException::badValue, "Object " + objectName + " is not known by the Megapose server!");
   }
-  std::future<vpMegaPoseEstimate> trackerFuture;
   //! [Instantiate megapose]
 
   cv::Mat frame;
@@ -347,104 +342,41 @@ int main(int argc, const char *argv[])
     // Check whether Megapose is still running
     //! [Check megapose]
 
-    if (!callMegapose && trackerFuture.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready) {
-      megaposeEstimate = trackerFuture.get();
-      if (tracking) {
-        megaposeTimes.push_back(vpTime::measureTimeMs() - megaposeStartTime);
-      }
-      callMegapose = true;
-      tracking = true;
 
-      if (overlayModel) {
-        const double ttt = vpTime::measureTimeMs();
-        vpMegaPoseObjectRenders renders = megapose->getObjectRenders(objectName, megaposeEstimate.cTo, { renderType, vpMegaPoseObjectRenders::DEPTH });
-        std::cout << "time render : " << (vpTime::measureTimeMs() - ttt) << std::endl;
-        switch (renderType) {
-        case vpMegaPoseObjectRenders::RGB:
-        {
-          overlayImage = renders.color;
-          break;
-        }
-        case vpMegaPoseObjectRenders::DEPTH:
-        {
-          vpImage<unsigned char> g;
-          vpImageConvert::convert(renders.depth, g);
-          vpImageConvert::convert(g, overlayImage);
-          break;
-        }
-        case vpMegaPoseObjectRenders::NORMALS:
-        {
 
-          overlayImage = renders.normals;
-          break;
-        }
-        }
-      }
-
-      if (megaposeEstimate.score < reinitThreshold) { // If confidence is low, require a reinitialisation with 2D detection
-        initialized = false;
-      }
-    }
     //! [Check megapose]
     //! [Call MegaPose]
-    if (callMegapose) {
-      if (!initialized) {
-        tracking = false;
-        std::optional<vpRect> detection = std::nullopt;
+    if (!initialized) {
+      std::optional<vpRect> detection = std::nullopt;
 #if (VISP_HAVE_OPENCV_VERSION >= 0x030403) && defined(HAVE_OPENCV_DNN) && (VISP_CXX_STANDARD >= VISP_CXX_STANDARD_17)
-        if (detectionMethod == DetectionMethod::DNN) {
-          detection = detectObjectForInitMegaposeDnn(
-            dnn, frame, objectName, initialized ? std::optional(megaposeEstimate) : std::nullopt);
-        }
-#endif
-        if (detectionMethod == DetectionMethod::CLICK) {
-          detection = detectObjectForInitMegaposeClick(I);
-        }
-
-        if (detection) {
-          initialized = true;
-          lastDetection = *detection;
-          trackerFuture = megaposeTracker.init(I, lastDetection);
-          callMegapose = false;
-        }
+      if (detectionMethod == DetectionMethod::DNN) {
+        detection = detectObjectForInitMegaposeDnn(
+          dnn, frame, objectName, initialized ? std::optional(megaposeEstimate) : std::nullopt);
       }
-      else {
-        trackerFuture = megaposeTracker.track(I);
-        callMegapose = false;
-        megaposeStartTime = vpTime::measureTimeMs();
+#endif
+      if (detectionMethod == DetectionMethod::CLICK) {
+        detection = detectObjectForInitMegaposeClick(I);
+      }
+
+      if (detection) {
+        initialized = true;
+        lastDetection = *detection;
+        megaposeTracker.init(I, lastDetection);
       }
     }
+    else {
+      megaposeTracker.track(I);
+    }
+    vpHomogeneousMatrix cTo = megaposeTracker.getPose();
+    tracking = megaposeTracker.isTracking();
     //! [Call MegaPose]
 
     //! [Display]
     std::string keyboardEvent;
-    const bool keyPressed = vpDisplay::getKeyboardEvent(I, keyboardEvent, false);
-    if (keyPressed) {
-      if (keyboardEvent == "t") {
-        overlayModel = !overlayModel;
-      }
-      else if (keyboardEvent == "w") {
-        switch (renderType) {
-        case vpMegaPoseObjectRenders::RGB: renderType = vpMegaPoseObjectRenders::DEPTH;
-          break;
-        case vpMegaPoseObjectRenders::DEPTH: renderType = vpMegaPoseObjectRenders::NORMALS;
-          break;
-        case vpMegaPoseObjectRenders::NORMALS: renderType = vpMegaPoseObjectRenders::RGB;
-          break;
-        }
-      }
-    }
 
     if (tracking) {
-      if (overlayModel) {
-        overlayRender(I, overlayImage);
-        vpDisplay::display(I);
-      }
-      vpDisplay::displayText(I, 20, 20, "Right click to quit", vpColor::red);
-      vpDisplay::displayText(I, 30, 20, "Press T: Toggle overlay", vpColor::red);
-      vpDisplay::displayText(I, 40, 20, "Press W: Toggle wireframe", vpColor::red);
-      vpDisplay::displayFrame(I, megaposeEstimate.cTo, cam, 0.05, vpColor::none, 3);
-      displayScore(I, megaposeEstimate.score);
+      vpDisplay::displayFrame(I, cTo, cam, 0.05, vpColor::none, 3);
+      //displayScore(I, megaposeEstimate.score);
     }
     //! [Display]
 

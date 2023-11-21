@@ -4,6 +4,7 @@
 #include <thread>
 
 #include <visp3/dnn_tracker/vpMegaPose.h>
+#include <visp3/vision/vpKeyPoint.h>
 
 class VISP_EXPORT vpMegaPoseHybridParams
 {
@@ -29,6 +30,13 @@ public:
 
 };
 
+class vpKeyPointCorrespondenceMapping
+{
+  std::vector<cv::Point3f> objectPoints;
+  std::vector<cv::KeyPoint> keypoints;
+
+};
+
 class VISP_EXPORT vpMegaPoseHybridTracker
 {
 public:
@@ -46,7 +54,7 @@ public:
 
   vpHomogeneousMatrix getPose() const { return m_cTo; }
 
-  bool isTracking() const { return m_tracking; }
+  bool isTracking() { return !m_megaTracker.diverged(); }
 
 private:
 
@@ -66,7 +74,7 @@ private:
   {
   public:
     vpMegaPoseKeyPointTracker(vpMegaPoseHybridTracker *parent, const vpMegaPoseHybridParams &parameters) :
-      m_megaposeRendering(std::move(parameters.makeMegaPoseConnection())), m_parent(parent)
+      m_megaposeRendering(std::move(parameters.makeMegaPoseConnection())), m_parent(parent), m_kp()
     { }
 
     void init(const vpImage<vpRGBa> &I, const vpHomogeneousMatrix &cTo);
@@ -77,6 +85,8 @@ private:
 
     vpMegaPose m_megaposeRendering; //! Connection to megapose, used for rendering images and extracting reference keypoints
     vpMegaPoseHybridTracker *m_parent;
+    vpHomogeneousMatrix m_lastEstimate;
+    vpKeyPoint m_kp;
   };
 
   class vpMegaPoseRawTracker
@@ -86,8 +96,7 @@ private:
       m_megaposeTracking(std::move(parameters.makeMegaPoseConnection())), m_parent(parent), m_newImagePending(false),
       m_trackingThread(&vpMegaPoseRawTracker::trackingThreadFn, this)
     {
-
-
+      m_lastEstimate.score = 0.0;
     }
 
     void init(const vpImage<vpRGBa> &I, const vpRect &bbox);
@@ -99,6 +108,11 @@ private:
     {
       std::lock_guard lock(m_resultMutex);
       return m_lastEstimate.score < 0.5;
+    }
+    vpMegaPoseEstimate getLastPoseEstimate()
+    {
+      std::lock_guard lock(m_resultMutex);
+      return m_lastEstimate;
     }
   private:
     vpMegaPose m_megaposeTracking; //! Connection to MegaPose, used to retrieve the raw MegaPose tracking results

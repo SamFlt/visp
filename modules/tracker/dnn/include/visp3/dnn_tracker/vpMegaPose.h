@@ -346,7 +346,7 @@ private:
   // Server connection data
   int m_serverSocket;
   int m_fd;
-  bool m_owns_socket; // True if the connection can be closed in a valid way (see move semantics)
+  bool m_ownsSocket; // True if the connection can be closed in a valid way (see move semantics)
 
   std::mutex m_mutex; // Since client-server communications are synchronous, avoid multiple parallel communications
 

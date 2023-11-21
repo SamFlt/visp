@@ -12,9 +12,10 @@ void vpMegaPoseHybridTracker::init(const vpImage<vpRGBa> &I, const vpHomogeneous
 
 void vpMegaPoseHybridTracker::track(const vpImage<vpRGBa> &I)
 {
-  if (!m_tracking) {
-    throw vpException(vpException::notInitialized, "Tracker is not initialized or has diverged!");
-  }
+
+  m_megaTracker.track(I);
+  m_kpTracker.track(I);
+  m_cTo = m_megaTracker.getLastPoseEstimate().cTo;
 }
 
 void vpMegaPoseHybridTracker::display(vpImage<vpRGBa> &I) const
@@ -26,6 +27,14 @@ void vpMegaPoseHybridTracker::display(vpImage<vpRGBa> &I) const
 
 
 void vpMegaPoseHybridTracker::vpMegaPoseKeyPointTracker::init(const vpImage<vpRGBa> &I, const vpHomogeneousMatrix &cTo)
+{
+  const vpMegaPoseObjectRenders renders = m_megaposeRendering.getObjectRenders(m_parent->m_parameters.m_objectLabel, cTo,
+  { vpMegaPoseObjectRenders::RGB, vpMegaPoseObjectRenders::DEPTH });
+  std::vector<cv::KeyPoint> keypoints;
+}
+
+
+void vpMegaPoseHybridTracker::vpMegaPoseKeyPointTracker::track(const vpImage<vpRGBa> &I)
 {
 
 }
@@ -87,7 +96,10 @@ void vpMegaPoseHybridTracker::vpMegaPoseRawTracker::trackingThreadFn()
       currentEstimate = estimates[0];
     }
 
-
+    { // Get last result
+      std::lock_guard lock(m_resultMutex);
+      m_lastEstimate = currentEstimate;
+    }
 
   }
 }
