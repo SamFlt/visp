@@ -283,21 +283,21 @@ void vpMeSite::track(const vpImage<unsigned char> &I, const vpMe *me, const bool
   // array in which likelihood ratios will be stored
   double *likelihood = new double[(2 * range) + 1];
 
+  double threshold = getContrastThreshold();
+
+  if (me->getLikelihoodThresholdType() == vpMe::NORMALIZED_THRESHOLD) {
+    threshold = 2.0 * threshold;
+  }
+  else {
+    const double n_d = me->getMaskSize();
+    threshold = threshold / (100.0 * n_d * trunc(n_d / 2.0));
+  }
+
   if (test_contrast) {
     double diff = 1e6;
     for (unsigned int n = 0; n < ((2 * range) + 1); ++n) {
       //   convolution results
       double convolution_ = list_query_pixels[n].convolution(I, me);
-      double threshold = list_query_pixels[n].getContrastThreshold();
-
-      if (me->getLikelihoodThresholdType() == vpMe::NORMALIZED_THRESHOLD) {
-        threshold = 2.0 * threshold;
-      }
-      else {
-        double n_d = me->getMaskSize();
-        threshold = threshold / (100.0 * n_d * trunc(n_d / 2.0));
-      }
-
       // luminance ratio of reference pixel to potential correspondent pixel
       // the luminance must be similar, hence the ratio value should
       // lay between, for instance, 0.5 and 1.5 (parameter tolerance)
@@ -316,15 +316,6 @@ void vpMeSite::track(const vpImage<unsigned char> &I, const vpMe *me, const bool
   }
   else { // test on contrast only
     for (unsigned int n = 0; n < ((2 * range) + 1); ++n) {
-      double threshold = list_query_pixels[n].getContrastThreshold();
-
-      if (me->getLikelihoodThresholdType() == vpMe::NORMALIZED_THRESHOLD) {
-        threshold = 2.0 * threshold;
-      }
-      else {
-        double n_d = me->getMaskSize();
-        threshold = threshold / (100.0 * n_d * trunc(n_d / 2.0));
-      }
 
       // convolution results
       double convolution_ = list_query_pixels[n].convolution(I, me);
