@@ -230,6 +230,19 @@ public:
   void track(const vpImage<unsigned char> &im, const vpMe *me, const bool &test_likelihood = true);
 
   /*!
+   * Similar to the \ref track function, but stores the best numCandidates hypotheses in \ref outputHypotheses.
+   * The best matching hypotheses (if it is not suppressed) is assigned to *this* and is stored as the first element of \ref outputHypotheses.
+   * The hypotheses are sorted from best to worst match in the vector.
+   * A match may be in the vector but mark as suppressed. If this is undesired, you should filter them afterwards.
+   *
+   * \throws if \ref numCandidates is superior to me.getRange() * 2 + 1
+   *
+   * \warning To display the moving edges graphics a call to vpDisplay::flush() is needed after this function.
+   */
+  void trackMultipleHypotheses(const vpImage<unsigned char> &I, const vpMe &me, const bool &test_contrast,
+                              std::vector<vpMeSite> &outputHypotheses, const unsigned numCandidates);
+
+  /*!
    * Set the angle of tangent at site.
    *
    * \param a : new value of alpha
