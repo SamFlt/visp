@@ -85,7 +85,7 @@ struct NpyArray
     shape(_shape), word_size(_word_size), fortran_order(_fortran_order)
   {
     num_vals = 1;
-    for (size_t i = 0; i < shape.size(); i++) num_vals *= shape[i];
+    for (size_t i = 0; i < shape.size(); ++i) num_vals *= shape[i];
     data_holder = std::shared_ptr<std::vector<char> >(
         new std::vector<char>(num_vals * word_size));
   }
@@ -139,7 +139,7 @@ VISP_EXPORT NpyArray npy_load(std::string fname);
 template<typename T> std::vector<char> &operator+=(std::vector<char> &lhs, const T rhs)
 {
   //write in little endian
-  for (size_t byte = 0; byte < sizeof(T); byte++) {
+  for (size_t byte = 0; byte < sizeof(T); ++byte) {
     char val = *((char *)&rhs+byte);
     lhs.push_back(val);
   }
@@ -157,7 +157,7 @@ template<> inline std::vector<char> &operator+=(std::vector<char> &lhs, const ch
 //write in little endian
   size_t len = strlen(rhs);
   lhs.reserve(len);
-  for (size_t byte = 0; byte < len; byte++) {
+  for (size_t byte = 0; byte < len; ++byte) {
     lhs.push_back(rhs[byte]);
   }
   return lhs;
@@ -196,7 +196,7 @@ template<typename T> void npy_save(std::string fname, const T *data, const std::
       assert(true_data_shape.size() != shape.size());
     }
 
-    for (size_t i = 1; i < shape.size(); i++) {
+    for (size_t i = 1; i < shape.size(); ++i) {
       if (shape[i] != true_data_shape[i]) {
         std::cout<<"libnpy error: npy_save attempting to append misshaped data to "<<fname<<"\n";
         assert(shape[i] == true_data_shape[i]);
@@ -250,13 +250,13 @@ template<typename T> void npz_save(std::string zipname, std::string fname, const
     //below, we will write the the new data at the start of the global header then append the global header and footer below it
     size_t global_header_size;
     parse_zip_footer(fp, nrecs, global_header_size, global_header_offset);
-    fseek(fp, global_header_offset, SEEK_SET);
+    fseek(fp, static_cast<long>(global_header_offset), SEEK_SET);
     global_header.resize(global_header_size);
     size_t res = fread(&global_header[0], sizeof(char), global_header_size, fp);
     if (res != global_header_size) {
       throw std::runtime_error("npz_save: header read error while adding to existing zip");
     }
-    fseek(fp, global_header_offset, SEEK_SET);
+    fseek(fp, static_cast<long>(global_header_offset), SEEK_SET);
   }
   else {
     fp = fopen(zipname.c_str(), "wb");
@@ -362,7 +362,7 @@ template<typename T> std::vector<char> create_npy_header(const std::vector<size_
   dict += std::to_string(sizeof(T));
   dict += "', 'fortran_order': False, 'shape': (";
   dict += std::to_string(shape[0]);
-  for (size_t i = 1; i < shape.size(); i++) {
+  for (size_t i = 1; i < shape.size(); ++i) {
     dict += ", ";
     dict += std::to_string(shape[i]);
   }

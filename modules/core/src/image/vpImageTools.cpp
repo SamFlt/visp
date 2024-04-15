@@ -36,6 +36,7 @@
 #include <visp3/core/vpCPUFeatures.h>
 #include <visp3/core/vpImageConvert.h>
 #include <visp3/core/vpImageTools.h>
+#include <visp3/core/vpImageException.h>
 
 #if defined(VISP_HAVE_SIMDLIB)
 #include <Simd/SimdLib.hpp>
@@ -108,8 +109,8 @@ void vpImageTools::changeLUT(vpImage<unsigned char> &I, unsigned char A, unsigne
 
   double factor = (double)(B_star - A_star) / (double)(B - A);
 
-  for (unsigned int i = 0; i < I.getHeight(); i++)
-    for (unsigned int j = 0; j < I.getWidth(); j++) {
+  for (unsigned int i = 0; i < I.getHeight(); ++i)
+    for (unsigned int j = 0; j < I.getWidth(); ++j) {
       v = I[i][j];
 
       if (v <= A)
@@ -219,7 +220,7 @@ void vpImageTools::imageDifferenceAbsolute(const vpImage<unsigned char> &I1, con
   }
 
   unsigned int n = I1.getHeight() * I1.getWidth();
-  for (unsigned int b = 0; b < n; b++) {
+  for (unsigned int b = 0; b < n; ++b) {
     int diff = I1.bitmap[b] - I2.bitmap[b];
     Idiff.bitmap[b] = static_cast<unsigned char>(vpMath::abs(diff));
   }
@@ -243,7 +244,7 @@ void vpImageTools::imageDifferenceAbsolute(const vpImage<double> &I1, const vpIm
   }
 
   unsigned int n = I1.getHeight() * I1.getWidth();
-  for (unsigned int b = 0; b < n; b++) {
+  for (unsigned int b = 0; b < n; ++b) {
     Idiff.bitmap[b] = vpMath::abs(I1.bitmap[b] - I2.bitmap[b]);
   }
 }
@@ -272,7 +273,7 @@ void vpImageTools::imageDifferenceAbsolute(const vpImage<vpRGBa> &I1, const vpIm
   }
 
   unsigned int n = I1.getHeight() * I1.getWidth();
-  for (unsigned int b = 0; b < n; b++) {
+  for (unsigned int b = 0; b < n; ++b) {
     int diffR = I1.bitmap[b].R - I2.bitmap[b].R;
     int diffG = I1.bitmap[b].G - I2.bitmap[b].G;
     int diffB = I1.bitmap[b].B - I2.bitmap[b].B;
@@ -410,8 +411,8 @@ void vpImageTools::initUndistortMap(const vpCameraParameters &cam, unsigned int 
 
   if (!is_KannalaBrandt && std::fabs(static_cast<double>(kud)) <= std::numeric_limits<double>::epsilon()) {
     // There is no need to undistort the image (Perpective projection)
-    for (unsigned int i = 0; i < height; i++) {
-      for (unsigned int j = 0; j < width; j++) {
+    for (unsigned int i = 0; i < height; ++i) {
+      for (unsigned int j = 0; j < width; ++j) {
         mapU[i][j] = static_cast<int>(j);
         mapV[i][j] = static_cast<int>(i);
         mapDu[i][j] = 0;
@@ -440,7 +441,7 @@ void vpImageTools::initUndistortMap(const vpCameraParameters &cam, unsigned int 
     kud_py2 = kud * invpy * invpy;
   }
 
-  for (unsigned int v = 0; v < height; v++) {
+  for (unsigned int v = 0; v < height; ++v) {
     deltav = v - v0;
 
     if (!is_KannalaBrandt)
@@ -448,7 +449,7 @@ void vpImageTools::initUndistortMap(const vpCameraParameters &cam, unsigned int 
     else
       deltav_py = deltav * invpy;
 
-    for (unsigned int u = 0; u < width; u++) {
+    for (unsigned int u = 0; u < width; ++u) {
       // computation of u,v : corresponding pixel coordinates in I.
       deltau = u - u0;
       if (!is_KannalaBrandt) {
@@ -510,8 +511,8 @@ void vpImageTools::integralImage(const vpImage<unsigned char> &I, vpImage<double
   II.resize(I.getHeight() + 1, I.getWidth() + 1, 0.0);
   IIsq.resize(I.getHeight() + 1, I.getWidth() + 1, 0.0);
 
-  for (unsigned int i = 1; i < II.getHeight(); i++) {
-    for (unsigned int j = 1; j < II.getWidth(); j++) {
+  for (unsigned int i = 1; i < II.getHeight(); ++i) {
+    for (unsigned int j = 1; j < II.getWidth(); ++j) {
       II[i][j] = I[i - 1][j - 1] + II[i - 1][j] + II[i][j - 1] - II[i - 1][j - 1];
       IIsq[i][j] = vpMath::sqr(I[i - 1][j - 1]) + IIsq[i - 1][j] + IIsq[i][j - 1] - IIsq[i - 1][j - 1];
     }
@@ -544,7 +545,7 @@ double vpImageTools::normalizedCorrelation(const vpImage<double> &I1, const vpIm
 #if defined(VISP_HAVE_SIMDLIB)
   SimdNormalizedCorrelation(I1.bitmap, a, I2.bitmap, b, I1.getSize(), a2, b2, ab, useOptimized);
 #else
-  for (unsigned int cpt = 0; cpt < I1.getSize(); cpt++) {
+  for (unsigned int cpt = 0; cpt < I1.getSize(); ++cpt) {
     ab += (I1.bitmap[cpt] - a) * (I2.bitmap[cpt] - b);
     a2 += vpMath::sqr(I1.bitmap[cpt] - a);
     b2 += vpMath::sqr(I2.bitmap[cpt] - b);
@@ -722,7 +723,7 @@ void vpImageTools::templateMatching(const vpImage<unsigned char> &I, const vpIma
     // zero-mean template image
     const double sum2 = (II_tpl[height_tpl][width_tpl] + II_tpl[0][0] - II_tpl[0][width_tpl] - II_tpl[height_tpl][0]);
     const double mean2 = sum2 / I_tpl.getSize();
-    for (unsigned int cpt = 0; cpt < I_tpl_double.getSize(); cpt++) {
+    for (unsigned int cpt = 0; cpt < I_tpl_double.getSize(); ++cpt) {
       I_tpl_double.bitmap[cpt] -= mean2;
     }
 
@@ -743,7 +744,7 @@ void vpImageTools::templateMatching(const vpImage<unsigned char> &I, const vpIma
 #if defined(_OPENMP) // only to disable warning: ignoring #pragma omp parallel [-Wunknown-pragmas]
 #pragma omp parallel for schedule(dynamic)
 #endif
-    for (int cpt = 0; cpt < end; cpt++) {
+    for (int cpt = 0; cpt < end; ++cpt) {
       for (unsigned int j = 0; j < I.getWidth() - width_tpl; j += step_u) {
         I_score[vec_step_v[cpt]][j] =
           normalizedCorrelation(I_double, I_tpl_double, II, IIsq, II_tpl, IIsq_tpl, vec_step_v[cpt], j);
@@ -800,8 +801,8 @@ double vpImageTools::normalizedCorrelation(const vpImage<double> &I1, const vpIm
 #if defined(VISP_HAVE_SIMDLIB)
   SimdNormalizedCorrelation2(I1.bitmap, I1.getWidth(), I2.bitmap, I2.getWidth(), I2.getHeight(), i0, j0, ab);
 #else
-  for (unsigned int i = 0; i < I2.getHeight(); i++) {
-    for (unsigned int j = 0; j < I2.getWidth(); j++) {
+  for (unsigned int i = 0; i < I2.getHeight(); ++i) {
+    for (unsigned int j = 0; j < I2.getWidth(); ++j) {
       ab += (I1[i0 + i][j0 + j]) * I2[i][j];
     }
   }
@@ -840,9 +841,9 @@ void vpImageTools::remap(const vpImage<unsigned char> &I, const vpArray2D<int> &
 #if defined(_OPENMP) // only to disable warning: ignoring #pragma omp parallel [-Wunknown-pragmas]
 #pragma omp parallel for schedule(dynamic)
 #endif
-  for (int i_ = 0; i_ < static_cast<int>(I.getHeight()); i_++) {
+  for (int i_ = 0; i_ < static_cast<int>(I.getHeight()); ++i_) {
     const unsigned int i = static_cast<unsigned int>(i_);
-    for (unsigned int j = 0; j < I.getWidth(); j++) {
+    for (unsigned int j = 0; j < I.getWidth(); ++j) {
 
       int u_round = mapU[i][j];
       int v_round = mapV[i][j];
@@ -884,13 +885,13 @@ void vpImageTools::remap(const vpImage<vpRGBa> &I, const vpArray2D<int> &mapU, c
 #if defined(_OPENMP) // only to disable warning: ignoring #pragma omp parallel [-Wunknown-pragmas]
 #pragma omp parallel for schedule(dynamic)
 #endif
-  for (int i = 0; i < static_cast<int>(I.getHeight()); i++) {
+  for (int i = 0; i < static_cast<int>(I.getHeight()); ++i) {
 #if defined(VISP_HAVE_SIMDLIB)
     SimdRemap(reinterpret_cast<unsigned char *>(I.bitmap), 4, I.getWidth(), I.getHeight(), i * I.getWidth(), mapU.data,
               mapV.data, mapDu.data, mapDv.data, reinterpret_cast<unsigned char *>(Iundist.bitmap));
 #else
     const unsigned int i_ = static_cast<unsigned int>(i);
-    for (unsigned int j = 0; j < I.getWidth(); j++) {
+    for (unsigned int j = 0; j < I.getWidth(); ++j) {
 
       int u_round = mapU[i_][j];
       int v_round = mapV[i_][j];
@@ -977,4 +978,174 @@ bool vpImageTools::checkFixedPoint(unsigned int x, unsigned int y, const vpMatri
 
   const double limit = 1 << 15;
   return (vpMath::abs(x2) < limit) && (vpMath::abs(y2) < limit);
+}
+
+/*!
+ * Keep the part of an image that is in the mask.
+ * @param[in] I : Input image.
+ * @param[in] mask : Mask where pixels to consider have values that differ from 0.
+ * @param[out] I_mask : Resulting image where pixels that are in the mask are kept.
+ * @return The number of pixels that are in the mask.
+ */
+int vpImageTools::inMask(const vpImage<vpRGBa> &I, const vpImage<unsigned char> &mask, vpImage<vpRGBa> &I_mask)
+{
+  if ((I.getHeight() != mask.getHeight()) || (I.getWidth() != mask.getWidth())) {
+    throw(vpImageException(vpImageException::incorrectInitializationError,
+                           "Error in vpImageTools::inMask(): image (%dx%d) and mask (%dx%d) size doesn't match",
+                           I.getWidth(), I.getHeight(), mask.getWidth(), mask.getHeight()));
+  }
+  vpRGBa black(0, 0, 0);
+  I_mask.resize(I.getHeight(), I.getWidth());
+  int cpt_in_mask = 0;
+  int size_ = static_cast<int>(I.getSize());
+#if defined(_OPENMP)
+#pragma omp parallel for reduction(+:cpt_in_mask)
+#endif
+  for (int i = 0; i < size_; ++i) {
+    if (mask.bitmap[i] == 0) {
+      I_mask.bitmap[i] = black;
+    }
+    else {
+      I_mask.bitmap[i] = I.bitmap[i];
+      ++cpt_in_mask;
+    }
+  }
+  return cpt_in_mask;
+}
+
+/*!
+ * Keep the part of an image that is in the mask.
+ * @param[in] I : Input image.
+ * @param[in] mask : Mask where pixels to consider have values that differ from 0.
+ * @param[out] I_mask : Resulting image where pixels that are in the mask are kept.
+ * @return The number of pixels that are in the mask.
+ */
+int vpImageTools::inMask(const vpImage<unsigned char> &I, const vpImage<unsigned char> &mask, vpImage<unsigned char> &I_mask)
+{
+  if ((I.getHeight() != mask.getHeight()) || (I.getWidth() != mask.getWidth())) {
+    throw(vpImageException(vpImageException::incorrectInitializationError,
+                           "Error in vpImageTools::inMask(): image (%dx%d) and mask (%dx%d) size doesn't match",
+                           I.getWidth(), I.getHeight(), mask.getWidth(), mask.getHeight()));
+  }
+  I_mask.resize(I.getHeight(), I.getWidth());
+  int cpt_in_mask = 0;
+  int size_ = static_cast<int>(I.getSize());
+#if defined(_OPENMP)
+#pragma omp parallel for reduction(+:cpt_in_mask)
+#endif
+  for (int i = 0; i < size_; ++i) {
+    if (mask.bitmap[i] == 0) {
+      I_mask.bitmap[i] = 0;
+    }
+    else {
+      I_mask.bitmap[i] = I.bitmap[i];
+      ++cpt_in_mask;
+    }
+  }
+  return cpt_in_mask;
+}
+
+/*!
+ * Create binary mask by checking if HSV (hue, saturation, value) channels lie between low and high HSV thresholds.
+ * \param[in] hue : Pointer to an array of hue values. Its dimension is equal to the `size` parameter.
+ * \param[in] saturation : Pointer to an array of saturation values. Its dimension is equal to the `size` parameter.
+ * \param[in] value : Pointer to an array of values. Its dimension is equal to the `size` parameter.
+ * \param[in] hsv_range : 6-dim vector that contains the low/high range values for each HSV channel respectively.
+ * Each element of this vector should be in [0,255] range. Note that there is also tutorial-hsv-tuner.cpp that may help
+ * to determine low/high HSV values.
+ * \param[out] mask : Pointer to a resulting mask of dimension `size`. When HSV value is in the boundaries, the mask
+ * element is set to 255, otherwise to 0. The mask should be allocated prior calling this function. Its dimension
+ * is equal to the `size` parameter.
+ * \param[in] size : Size of `hue`, `saturation`, `value` and `mask` arrays.
+ *
+ * \sa vpImageConvert::RGBToHSV(const unsigned char *, unsigned char *, unsigned char *, unsigned char *, unsigned int, bool)
+ * \sa vpImageConvert::RGBaToHSV(const unsigned char *, unsigned char *, unsigned char *, unsigned char *, unsigned int, bool)
+ */
+int vpImageTools::inRange(const unsigned char *hue, const unsigned char *saturation, const unsigned char *value,
+                          const vpColVector &hsv_range, unsigned char *mask, unsigned int size)
+{
+  if ((hue == nullptr) || (saturation == nullptr) || (value == nullptr)) {
+    throw(vpImageException(vpImageException::notInitializedError,
+                           "Error in vpImageTools::inRange(): hsv pointer are empty"));
+  }
+  else if (hsv_range.size() != 6) {
+    throw(vpImageException(vpImageException::notInitializedError,
+                           "Error in vpImageTools::inRange(): wrong values vector size (%d)", hsv_range.size()));
+  }
+  unsigned char h_low = static_cast<unsigned char>(hsv_range[0]);
+  unsigned char h_high = static_cast<unsigned char>(hsv_range[1]);
+  unsigned char s_low = static_cast<unsigned char>(hsv_range[2]);
+  unsigned char s_high = static_cast<unsigned char>(hsv_range[3]);
+  unsigned char v_low = static_cast<unsigned char>(hsv_range[4]);
+  unsigned char v_high = static_cast<unsigned char>(hsv_range[5]);
+  int size_ = static_cast<int>(size);
+  int cpt_in_range = 0;
+#if defined(_OPENMP)
+#pragma omp parallel for reduction(+:cpt_in_range)
+#endif
+  for (int i = 0; i < size_; ++i) {
+    if ((h_low <= hue[i]) && (hue[i] <= h_high) &&
+        (s_low <= saturation[i]) && (saturation[i] <= s_high) &&
+        (v_low <= value[i]) && (value[i] <= v_high)) {
+      mask[i] = 255;
+      ++cpt_in_range;
+    }
+    else {
+      mask[i] = 0;
+    }
+  }
+  return cpt_in_range;
+}
+
+/*!
+ * Create binary mask by checking if HSV (hue, saturation, value) channels lie between low and high HSV thresholds.
+ * \param[in] hue : Pointer to an array of hue values. Its dimension is equal to the `size` parameter.
+ * \param[in] saturation : Pointer to an array of saturation values. Its dimension is equal to the `size` parameter.
+ * \param[in] value : Pointer to an array of values. Its dimension is equal to the `size` parameter.
+ * \param[in] hsv_range : 6-dim vector that contains the low/high range values for each HSV channel respectively.
+ * Each element of this vector should be in [0,255] range. Note that there is also tutorial-hsv-tuner.cpp that may help
+ * to determine low/high HSV values.
+ * \param[out] mask : Pointer to a resulting mask of dimension `size`. When HSV value is in the boundaries, the mask
+ * element is set to 255, otherwise to 0. The mask should be allocated prior calling this function. Its dimension
+ * is equal to the `size` parameter.
+ * \param[in] size : Size of `hue`, `saturation`, `value` and `mask` arrays.
+ * \return The number of pixels that are in the HSV range.
+ *
+ * \sa vpImageConvert::RGBToHSV(const unsigned char *, unsigned char *, unsigned char *, unsigned char *, unsigned int, bool)
+ * \sa vpImageConvert::RGBaToHSV(const unsigned char *, unsigned char *, unsigned char *, unsigned char *, unsigned int, bool)
+ */
+int vpImageTools::inRange(const unsigned char *hue, const unsigned char *saturation, const unsigned char *value,
+                           const std::vector<int> &hsv_range, unsigned char *mask, unsigned int size)
+{
+  if ((hue == nullptr) || (saturation == nullptr) || (value == nullptr)) {
+    throw(vpImageException(vpImageException::notInitializedError,
+                           "Error in vpImageTools::inRange(): hsv pointer are empty"));
+  }
+  else if (hsv_range.size() != 6) {
+    throw(vpImageException(vpImageException::notInitializedError,
+                           "Error in vpImageTools::inRange(): wrong values vector size (%d)", hsv_range.size()));
+  }
+  unsigned char h_low = static_cast<unsigned char>(hsv_range[0]);
+  unsigned char h_high = static_cast<unsigned char>(hsv_range[1]);
+  unsigned char s_low = static_cast<unsigned char>(hsv_range[2]);
+  unsigned char s_high = static_cast<unsigned char>(hsv_range[3]);
+  unsigned char v_low = static_cast<unsigned char>(hsv_range[4]);
+  unsigned char v_high = static_cast<unsigned char>(hsv_range[5]);
+  int size_ = static_cast<int>(size);
+  int cpt_in_range = 0;
+#if defined(_OPENMP)
+#pragma omp parallel for reduction(+:cpt_in_range)
+#endif
+  for (int i = 0; i < size_; ++i) {
+    if ((h_low <= hue[i]) && (hue[i] <= h_high) &&
+        (s_low <= saturation[i]) && (saturation[i] <= s_high) &&
+        (v_low <= value[i]) && (value[i] <= v_high)) {
+      mask[i] = 255;
+      ++cpt_in_range;
+    }
+    else {
+      mask[i] = 0;
+    }
+  }
+  return cpt_in_range;
 }

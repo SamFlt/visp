@@ -41,6 +41,7 @@
 #include <sstream>
 #include <stdlib.h>
 #include <string.h>
+#include <vector>
 
 #include <visp3/core/vpConfig.h>
 #include <visp3/core/vpException.h>
@@ -77,8 +78,8 @@
  *   a[1][0] =  4; a[1][1] = 5.5; a[1][2] =  6;
  *
  *   std::cout << "a:" << std::endl;
- *   for (unsigned int i = 0; i < a.getRows(); i++) {
- *     for (unsigned int j = 0; j < a.getCols(); j++) {
+ *   for (unsigned int i = 0; i < a.getRows(); ++i) {
+ *     for (unsigned int j = 0; j < a.getCols(); ++j) {
  *       std::cout << a[i][j] << " ";
  *     }
  *     std::cout << std::endl;
@@ -145,7 +146,7 @@ public:
   vpArray2D<Type>() : rowNum(0), colNum(0), rowPtrs(nullptr), dsize(0), data(nullptr) { }
 
   /*!
-  Copy constructor of a 2D array.
+    Copy constructor of a 2D array.
   */
   vpArray2D<Type>(const vpArray2D<Type> &A)
     :
@@ -160,10 +161,10 @@ public:
   }
 
   /*!
-  Constructor that initializes a 2D array with 0.
+    Constructor that initializes a 2D array with 0.
 
-  \param r : Array number of rows.
-  \param c : Array number of columns.
+    \param r : Array number of rows.
+    \param c : Array number of columns.
   */
   vpArray2D<Type>(unsigned int r, unsigned int c)
     :
@@ -177,11 +178,11 @@ public:
   }
 
   /*!
-  Constructor that initialize a 2D array with \e val.
+    Constructor that initialize a 2D array with \e val.
 
-  \param r : Array number of rows.
-  \param c : Array number of columns.
-  \param val : Each element of the array is set to \e val.
+    \param r : Array number of rows.
+    \param c : Array number of columns.
+    \param val : Each element of the array is set to \e val.
   */
   vpArray2D<Type>(unsigned int r, unsigned int c, Type val)
     :
@@ -193,6 +194,45 @@ public:
   {
     resize(r, c, false, false);
     *this = val;
+  }
+
+  /*!
+    Constructor that initialize a 2D array from a std::vector.
+
+    - When c = 0, create a colum vector with dimension (data.size, 1)
+    - When r = 0, create a row vector with dimension (1, data.size)
+    - Otherwise create an array with dimension (r, c)
+
+    \param r : Array number of rows.
+    \param c : Array number of columns.
+    \param vec : Data used to initialize the 2D array.
+  */
+  vpArray2D<Type>(const std::vector<Type> &vec, unsigned int r = 0, unsigned int c = 0)
+    :
+#if ((__cplusplus >= 201103L) || (defined(_MSVC_LANG) && (_MSVC_LANG >= 201103L))) // Check if cxx11 or higher
+    vpArray2D<Type>()
+#else
+    rowNum(0), colNum(0), rowPtrs(nullptr), dsize(0), data(nullptr)
+#endif
+  {
+    if (r > 0 && c > 0) {
+      if ((r * c) != vec.size()) {
+        throw(vpException(vpException::dimensionError,
+                          "Cannot initialize vpArray(%d, %d) from std::vector(%d). Wrong dimension", r, c, vec.size()));
+      }
+      resize(r, c, false, false);
+    }
+    else if (c == 0) {
+      resize(static_cast<unsigned int>(vec.size()), 1, false, false);
+    }
+    else if (r == 0) {
+      resize(1, static_cast<unsigned int>(vec.size()), false, false);
+    }
+#if ((__cplusplus >= 201103L) || (defined(_MSVC_LANG) && (_MSVC_LANG >= 201103L))) // Check if cxx11 or higher
+    std::copy(vec.begin(), vec.end(), data);
+#else
+    memcpy(data, vec.data(), vec.size() * sizeof(Type));
+#endif
   }
 
 #if ((__cplusplus >= 201103L) || (defined(_MSVC_LANG) && (_MSVC_LANG >= 201103L))) // Check if cxx11 or higher
@@ -419,14 +459,14 @@ public:
 
 
   /*!
-  Insert array A at the given position in the current array.
+    Insert array A at the given position in the current array.
 
-  \warning Throw vpException::dimensionError if the
-  dimensions of the matrices do not allow the operation.
+    \warning Throw vpException::dimensionError if the
+    dimensions of the matrices do not allow the operation.
 
-  \param A : The array to insert.
-  \param r : The index of the row to begin to insert data.
-  \param c : The index of the column to begin to insert data.
+    \param A : The array to insert.
+    \param r : The index of the row to begin to insert data.
+    \param c : The index of the column to begin to insert data.
   */
   void insert(const vpArray2D<Type> &A, unsigned int r, unsigned int c)
   {
@@ -435,7 +475,7 @@ public:
         memcpy(data + r * colNum, A.data, sizeof(Type) * A.size());
       }
       else if (data != nullptr && A.data != nullptr && A.data != data) {
-        for (unsigned int i = r; i < (r + A.getRows()); i++) {
+        for (unsigned int i = r; i < (r + A.getRows()); ++i) {
           memcpy(data + i * colNum + c, A.data + (i - r) * A.colNum, sizeof(Type) * A.colNum);
         }
       }
@@ -552,8 +592,8 @@ public:
     std::ios_base::fmtflags original_flags = s.flags();
 
     s.precision(10);
-    for (unsigned int i = 0; i < A.getRows(); i++) {
-      for (unsigned int j = 0; j < A.getCols() - 1; j++) {
+    for (unsigned int i = 0; i < A.getRows(); ++i) {
+      for (unsigned int j = 0; j < A.getCols() - 1; ++j) {
         s << A[i][j] << "  ";
       }
       // We don't add "  " after the last row element
@@ -658,8 +698,8 @@ public:
       A.resize(rows, cols);
 
       Type value;
-      for (unsigned int i = 0; i < rows; i++) {
-        for (unsigned int j = 0; j < cols; j++) {
+      for (unsigned int i = 0; i < rows; ++i) {
+        for (unsigned int j = 0; j < cols; ++j) {
           file >> value;
           A[i][j] = value;
         }
@@ -688,8 +728,8 @@ public:
       A.resize(rows, cols);
 
       Type value;
-      for (unsigned int i = 0; i < rows; i++) {
-        for (unsigned int j = 0; j < cols; j++) {
+      for (unsigned int i = 0; i < rows; ++i) {
+        for (unsigned int j = 0; j < cols; ++j) {
           file.read((char *)&value, sizeof(Type));
           A[i][j] = value;
         }
@@ -841,8 +881,8 @@ public:
       matrixSize = A.getCols();
       file.write((char *)&matrixSize, sizeof(unsigned int));
       Type value;
-      for (unsigned int i = 0; i < A.getRows(); i++) {
-        for (unsigned int j = 0; j < A.getCols(); j++) {
+      for (unsigned int i = 0; i < A.getRows(); ++i) {
+        for (unsigned int j = 0; j < A.getCols(); ++j) {
           value = A[i][j];
           file.write((char *)&value, sizeof(Type));
         }
@@ -858,39 +898,39 @@ public:
     \param filename : absolute file name.
     \param A : array to be saved in the file.
     \param header : optional lines that will be saved at the beginning of the
-  file. Should be YAML-formatted and will adapt to the indentation if any.
+    file. Should be YAML-formatted and will adapt to the indentation if any.
 
     \return Returns true if success.
 
     Here is an example of outputs.
-  \code
-  vpArray2D<double> M(3,4);
-  vpArray2D::saveYAML("matrix.yml", M, "example: a YAML-formatted header");
-  vpArray2D::saveYAML("matrixIndent.yml", M, "example:\n    - a YAML-formatted \
-  header\n    - with inner indentation");
-  \endcode
-  Content of matrix.yml:
-  \code
-  example: a YAML-formatted header
-  rows: 3
-  cols: 4
-  data:
-    - [0, 0, 0, 0]
-    - [0, 0, 0, 0]
-    - [0, 0, 0, 0]
-  \endcode
-  Content of matrixIndent.yml:
-  \code
-  example:
-      - a YAML-formatted header
-      - with inner indentation
-  rows: 3
-  cols: 4
-  data:
+    \code
+    vpArray2D<double> M(3,4);
+    vpArray2D::saveYAML("matrix.yml", M, "example: a YAML-formatted header");
+    vpArray2D::saveYAML("matrixIndent.yml", M, "example:\n    - a YAML-formatted \
+    header\n    - with inner indentation");
+    \endcode
+    Content of matrix.yml:
+    \code
+    example: a YAML-formatted header
+    rows: 3
+    cols: 4
+    data:
       - [0, 0, 0, 0]
       - [0, 0, 0, 0]
       - [0, 0, 0, 0]
-  \endcode
+    \endcode
+    Content of matrixIndent.yml:
+    \code
+    example:
+        - a YAML-formatted header
+        - with inner indentation
+    rows: 3
+    cols: 4
+    data:
+        - [0, 0, 0, 0]
+        - [0, 0, 0, 0]
+        - [0, 0, 0, 0]
+    \endcode
 
     \sa loadYAML()
   */
@@ -963,72 +1003,72 @@ public:
 #endif
 
   /*!
-  Perform a 2D convolution similar to Matlab conv2 function: \f$ M \star kernel \f$.
+    Perform a 2D convolution similar to Matlab conv2 function: \f$ M \star kernel \f$.
 
-  \param M : First matrix.
-  \param kernel : Second matrix.
-  \param mode : Convolution mode: "full" (default), "same", "valid".
+    \param M : First matrix.
+    \param kernel : Second matrix.
+    \param mode : Convolution mode: "full" (default), "same", "valid".
 
-  \image html vpMatrix-conv2-mode.jpg "Convolution mode: full, same, valid (image credit: Theano doc)."
+    \image html vpMatrix-conv2-mode.jpg "Convolution mode: full, same, valid (image credit: Theano doc)."
 
-  \note This is a very basic implementation that does not use FFT.
+    \note This is a very basic implementation that does not use FFT.
   */
   static vpArray2D<Type> conv2(const vpArray2D<Type> &M, const vpArray2D<Type> &kernel, const std::string &mode);
 
   /*!
-  Perform a 2D convolution similar to Matlab conv2 function: \f$ M \star kernel \f$.
+    Perform a 2D convolution similar to Matlab conv2 function: \f$ M \star kernel \f$.
 
-  \param M : First array.
-  \param kernel : Second array.
-  \param res : Result.
-  \param mode : Convolution mode: "full" (default), "same", "valid".
+    \param M : First array.
+    \param kernel : Second array.
+    \param res : Result.
+    \param mode : Convolution mode: "full" (default), "same", "valid".
 
-  \image html vpMatrix-conv2-mode.jpg "Convolution mode: full, same, valid (image credit: Theano doc)."
+    \image html vpMatrix-conv2-mode.jpg "Convolution mode: full, same, valid (image credit: Theano doc)."
 
-  \note This is a very basic implementation that does not use FFT.
+    \note This is a very basic implementation that does not use FFT.
   */
   static void conv2(const vpArray2D<Type> &M, const vpArray2D<Type> &kernel, vpArray2D<Type> &res, const std::string &mode);
 
   /*!
-  Insert array B in array A at the given position.
+    Insert array B in array A at the given position.
 
-  \param A : Main array.
-  \param B : Array to insert.
-  \param r : Index of the row where to add the array.
-  \param c : Index of the column where to add the array.
-  \return Array with B insert in A.
+    \param A : Main array.
+    \param B : Array to insert.
+    \param r : Index of the row where to add the array.
+    \param c : Index of the column where to add the array.
+    \return Array with B insert in A.
 
-  \warning Throw exception if the sizes of the arrays do not allow the
-  insertion.
+    \warning Throw exception if the sizes of the arrays do not allow the
+    insertion.
   */
   vpArray2D<Type> insert(const vpArray2D<Type> &A, const vpArray2D<Type> &B, unsigned int r, unsigned int c);
 
   /*!
-  \relates vpArray2D
-  Insert array B in array A at the given position.
+    \relates vpArray2D
+    Insert array B in array A at the given position.
 
-  \param A : Main array.
-  \param B : Array to insert.
-  \param C : Result array.
-  \param r : Index of the row where to insert array B.
-  \param c : Index of the column where to insert array B.
+    \param A : Main array.
+    \param B : Array to insert.
+    \param C : Result array.
+    \param r : Index of the row where to insert array B.
+    \param c : Index of the column where to insert array B.
 
-  \warning Throw exception if the sizes of the arrays do not
-  allow the insertion.
+    \warning Throw exception if the sizes of the arrays do not
+    allow the insertion.
   */
   static void insert(const vpArray2D<Type> &A, const vpArray2D<Type> &B, vpArray2D<Type> &C, unsigned int r, unsigned int c);
   //@}
 };
 
 /*!
- Return the array min value.
+  Return the array min value.
  */
 template <class Type> Type vpArray2D<Type>::getMinValue() const
 {
   Type *dataptr = data;
   Type min = *dataptr;
   dataptr++;
-  for (unsigned int i = 0; i < dsize - 1; i++) {
+  for (unsigned int i = 0; i < dsize - 1; ++i) {
     if (*dataptr < min) {
       min = *dataptr;
     }
@@ -1038,14 +1078,14 @@ template <class Type> Type vpArray2D<Type>::getMinValue() const
 }
 
 /*!
- Return the array max value.
+  Return the array max value.
  */
 template <class Type> Type vpArray2D<Type>::getMaxValue() const
 {
   Type *dataptr = data;
   Type max = *dataptr;
   dataptr++;
-  for (unsigned int i = 0; i < dsize - 1; i++) {
+  for (unsigned int i = 0; i < dsize - 1; ++i) {
     if (*dataptr > max) {
       max = *dataptr;
     }
@@ -1069,7 +1109,7 @@ template <class Type> vpArray2D<Type> vpArray2D<Type>::hadamard(const vpArray2D<
   vpArray2D<Type> out;
   out.resize(rowNum, colNum, false);
 
-  for (unsigned int i = 0; i < dsize; i++) {
+  for (unsigned int i = 0; i < dsize; ++i) {
     out.data[i] = data[i] * m.data[i];
   }
 
@@ -1079,8 +1119,8 @@ template <class Type> vpArray2D<Type> vpArray2D<Type>::hadamard(const vpArray2D<
 template <class Type> vpArray2D<Type> vpArray2D<Type>::t() const
 {
   vpArray2D<Type> At(colNum, rowNum);
-  for (unsigned int i = 0; i < rowNum; i++) {
-    for (unsigned int j = 0; j < colNum; j++) {
+  for (unsigned int i = 0; i < rowNum; ++i) {
+    for (unsigned int j = 0; j < colNum; ++j) {
       At[j][i] = (*this)[i][j];
     }
   }
@@ -1129,10 +1169,10 @@ template <class Type> void vpArray2D<Type>::conv2(const vpArray2D<Type> &M, cons
   }
 
   if (mode == "same") {
-    for (unsigned int i = 0; i < res_same.getRows(); i++) {
-      for (unsigned int j = 0; j < res_same.getCols(); j++) {
-        for (unsigned int k = 0; k < kernel.getRows(); k++) {
-          for (unsigned int l = 0; l < kernel.getCols(); l++) {
+    for (unsigned int i = 0; i < res_same.getRows(); ++i) {
+      for (unsigned int j = 0; j < res_same.getCols(); ++j) {
+        for (unsigned int k = 0; k < kernel.getRows(); ++k) {
+          for (unsigned int l = 0; l < kernel.getCols(); ++l) {
             res_same[i][j] += M_padded[i + k][j + l] * kernel[kernel.getRows() - k - 1][kernel.getCols() - l - 1];
           }
         }
@@ -1141,16 +1181,16 @@ template <class Type> void vpArray2D<Type>::conv2(const vpArray2D<Type> &M, cons
 
     const unsigned int start_i = kernel.getRows() / 2;
     const unsigned int start_j = kernel.getCols() / 2;
-    for (unsigned int i = 0; i < M.getRows(); i++) {
+    for (unsigned int i = 0; i < M.getRows(); ++i) {
       memcpy(res.data + i * M.getCols(), res_same.data + (i + start_i) * res_same.getCols() + start_j,
              sizeof(Type) * M.getCols());
     }
   }
   else {
-    for (unsigned int i = 0; i < res.getRows(); i++) {
-      for (unsigned int j = 0; j < res.getCols(); j++) {
-        for (unsigned int k = 0; k < kernel.getRows(); k++) {
-          for (unsigned int l = 0; l < kernel.getCols(); l++) {
+    for (unsigned int i = 0; i < res.getRows(); ++i) {
+      for (unsigned int j = 0; j < res.getCols(); ++j) {
+        for (unsigned int k = 0; k < kernel.getRows(); ++k) {
+          for (unsigned int l = 0; l < kernel.getCols(); ++l) {
             res[i][j] += M_padded[i + k][j + l] * kernel[kernel.getRows() - k - 1][kernel.getCols() - l - 1];
           }
         }
@@ -1173,8 +1213,8 @@ template<class Type> void vpArray2D<Type>::insert(const vpArray2D<Type> &A, cons
   if (((r + B.getRows()) <= A.getRows()) && ((c + B.getCols()) <= A.getCols())) {
     C.resize(A.getRows(), A.getCols(), false, false);
 
-    for (unsigned int i = 0; i < A.getRows(); i++) {
-      for (unsigned int j = 0; j < A.getCols(); j++) {
+    for (unsigned int i = 0; i < A.getRows(); ++i) {
+      for (unsigned int j = 0; j < A.getCols(); ++j) {
         if (i >= r && i < (r + B.getRows()) && j >= c && j < (c + B.getCols())) {
           C[i][j] = B[i - r][j - c];
         }
@@ -1196,7 +1236,7 @@ template <class Type> bool vpArray2D<Type>::operator==(const vpArray2D<Type> &A)
     return false;
   }
 
-  for (unsigned int i = 0; i < A.size(); i++) {
+  for (unsigned int i = 0; i < A.size(); ++i) {
     if (data[i] != A.data[i]) {
       return false;
     }
@@ -1214,7 +1254,7 @@ template <> inline bool vpArray2D<double>::operator==(const vpArray2D<double> &A
     return false;
   }
 
-  for (unsigned int i = 0; i < A.size(); i++) {
+  for (unsigned int i = 0; i < A.size(); ++i) {
     if (fabs(data[i] - A.data[i]) > std::numeric_limits<double>::epsilon()) {
       return false;
     }
@@ -1232,7 +1272,7 @@ template <> inline bool vpArray2D<float>::operator==(const vpArray2D<float> &A) 
     return false;
   }
 
-  for (unsigned int i = 0; i < A.size(); i++) {
+  for (unsigned int i = 0; i < A.size(); ++i) {
     if (fabsf(data[i] - A.data[i]) > std::numeric_limits<float>::epsilon()) {
       return false;
     }
