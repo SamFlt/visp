@@ -143,13 +143,13 @@ public:
    * Display moving edges in image I.
    * @param I : Input image.
    */
-  void display(const vpImage<unsigned char> &I);
+  void display(const vpImage<unsigned char> &I) const;
 
   /*!
    * Display moving edges in image I.
    * @param I : Input image.
    */
-  void display(const vpImage<vpRGBa> &I);
+  void display(const vpImage<vpRGBa> &I) const;
 
   /*!
    * Get the angle of tangent at site.
@@ -311,9 +311,27 @@ public:
    */
   inline double getContrastThreshold() const { return m_contrastThreshold; }
 
+
   /*!
-   * Copy operator.
+   * Get the final computed likelihood threshold value, depending on the likelihood threshold type and ME settings.
+   *
+   * \return value of the contrast threshold of the site.
    */
+  inline double computeFinalThreshold(const vpMe &me) const
+  {
+    const double threshold = getContrastThreshold();
+    if (me.getLikelihoodThresholdType() == vpMe::NORMALIZED_THRESHOLD) {
+      return 2.0 * threshold;
+    }
+    else {
+      const double n_d = me.getMaskSize();
+      return threshold / (100.0 * n_d * trunc(n_d / 2.0));
+    }
+  }
+
+ /*!
+  * Copy operator.
+  */
   vpMeSite &operator=(const vpMeSite &m);
 
   /*!
