@@ -143,13 +143,13 @@ public:
    * Display moving edges in image I.
    * @param I : Input image.
    */
-  void display(const vpImage<unsigned char> &I);
+  void display(const vpImage<unsigned char> &I) const;
 
   /*!
    * Display moving edges in image I.
    * @param I : Input image.
    */
-  void display(const vpImage<vpRGBa> &I);
+  void display(const vpImage<vpRGBa> &I) const;
 
   /*!
    * Get the angle of tangent at site.

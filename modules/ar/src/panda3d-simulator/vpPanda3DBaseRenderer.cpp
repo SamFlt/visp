@@ -211,20 +211,18 @@ void vpPanda3DBaseRenderer::enableDebugLog()
 
 }
 
-
-
 vpColVector vpPanda3DBaseRenderer::vispPointToPanda(const vpColVector &point)
 {
   vpColVector pandaPos = PANDA_T_VISP * point;
   pandaPos /= pandaPos[3];
   return pandaPos;
 }
+
 vpColVector vpPanda3DBaseRenderer::vispVectorToPanda(const vpColVector &point)
 {
   vpColVector pandaPos = PANDA_T_VISP.getRotationMatrix() * point;
   return pandaPos;
 }
-
 
 
 void vpPanda3DBaseRenderer::printStructure()
