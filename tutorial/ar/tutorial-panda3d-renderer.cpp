@@ -46,18 +46,16 @@
 #include <visp3/gui/vpDisplayGTK.h>
 
 #include <visp3/io/vpParseArgv.h>
-<<<<<<< HEAD
-  ====== =
+
 #include <visp3/io/vpImageIo.h>
-  >>>>>>> feat_panda3d
 
 #include <visp3/ar/vpPanda3DRGBRenderer.h>
 #include <visp3/ar/vpPanda3DGeometryRenderer.h>
 #include <visp3/ar/vpPanda3DRendererSet.h>
 #include <visp3/ar/vpPanda3DCommonFilters.h>
 
-  void displayNormals(const vpImage<vpRGBf> &normalsImage,
-                      vpImage<vpRGBa> &normalDisplayImage)
+void displayNormals(const vpImage<vpRGBf> &normalsImage,
+                    vpImage<vpRGBa> &normalDisplayImage)
 {
 #pragma omp parallel for
   for (int i = 0; i < normalsImage.getSize(); ++i) {
@@ -124,20 +122,15 @@ int main(int argc, const char **argv)
   bool showLightContrib = false;
   bool showCanny = false;
   char *modelPathCstr = nullptr;
-  <<<<<<< HEAD
-    ====== =
-    char *backgroundPathCstr = nullptr;
 
-  >>>>>>> feat_panda3d
-    vpParseArgv::vpArgvInfo argTable[] =
+  char *backgroundPathCstr = nullptr;
+  vpParseArgv::vpArgvInfo argTable[] =
   {
     {"-model", vpParseArgv::ARGV_STRING, (char *) nullptr, (char *)&modelPathCstr,
      "Path to the model to load."},
-<<<<<<< HEAD
-====== =
+
     {"-background", vpParseArgv::ARGV_STRING, (char *) nullptr, (char *)&backgroundPathCstr,
      "Path to the background image to load for the rgb renderer."},
->>>>>>> feat_panda3d
     {"-step", vpParseArgv::ARGV_CONSTANT_BOOL, (char *) nullptr, (char *)&stepByStep,
      "Show frames step by step."},
     {"-specular", vpParseArgv::ARGV_CONSTANT_BOOL, (char *) nullptr, (char *)&showLightContrib,
@@ -165,16 +158,14 @@ int main(int argc, const char **argv)
   else {
     modelPath = "data/suzanne.bam";
   }
-  <<<<<<< HEAD
-    ====== =
-    std::string backgroundPath;
+
+  std::string backgroundPath;
   if (backgroundPathCstr) {
     backgroundPath = backgroundPathCstr;
   }
-  >>>>>>> feat_panda3d
-    const std::string objectName = "object";
+  const std::string objectName = "object";
 
-    //! [Renderer set]
+  //! [Renderer set]
   vpPanda3DRenderParameters renderParams(vpCameraParameters(300, 300, 160, 120), 240, 320, 0.01, 10.0);
   vpPanda3DRendererSet renderer(renderParams);
   renderer.setRenderParameters(renderParams);
@@ -187,12 +178,8 @@ int main(int argc, const char **argv)
 
   //! [Subrenderers init]
   std::shared_ptr<vpPanda3DGeometryRenderer> geometryRenderer =
-    <<<<<<< HEAD
-    std::make_shared<vpPanda3DGeometryRenderer>(vpPanda3DGeometryRenderer::vpRenderType::WORLD_NORMALS);
-  ====== =
     std::make_shared<vpPanda3DGeometryRenderer>(vpPanda3DGeometryRenderer::vpRenderType::OBJECT_NORMALS);
-  >>>>>>> feat_panda3d
-    std::shared_ptr<vpPanda3DGeometryRenderer> cameraRenderer =
+  std::shared_ptr<vpPanda3DGeometryRenderer> cameraRenderer =
     std::make_shared<vpPanda3DGeometryRenderer>(vpPanda3DGeometryRenderer::vpRenderType::CAMERA_NORMALS);
   std::shared_ptr<vpPanda3DRGBRenderer> rgbRenderer =
     std::make_shared<vpPanda3DRGBRenderer>();
@@ -235,17 +222,11 @@ int main(int argc, const char **argv)
   vpPanda3DDirectionalLight dlight("Directional", vpRGBf(2.0), vpColVector({ 1.0, 1.0, 0.0 }));
   renderer.addLight(dlight);
 
-  <<<<<<< HEAD
-    renderer.setCameraPose(vpHomogeneousMatrix(0.0, 0.0, -0.3, 0.0, 0.0, 0.0));
     //! [Scene configuration]
 
   rgbRenderer->printStructure();
 
   unsigned h = renderParams.getImageHeight(), w = renderParams.getImageWidth();
-
-  ====== =
-    <<<<<<< HEAD
-    rgbRenderer->printStructure();
   if (!backgroundPath.empty()) {
     vpImage<vpRGBa> background;
     vpImageIo::read(background, backgroundPath);
@@ -255,17 +236,9 @@ int main(int argc, const char **argv)
 
   std::cout << "Setting camera pose" << std::endl;
   renderer.setCameraPose(vpHomogeneousMatrix(0.0, 0.0, -0.3, 0.0, 0.0, 0.0));
-  ====== =
-    renderer.setCameraPose(vpHomogeneousMatrix(0.0, 0.0, -0.3, 0.0, 0.0, 0.0));
-    //! [Scene configuration]
-
-  rgbRenderer->printStructure();
-
-  >>>>>>> c386b93ae(tutorial structure)
-    unsigned h = renderParams.getImageHeight(), w = renderParams.getImageWidth();
+  unsigned h = renderParams.getImageHeight(), w = renderParams.getImageWidth();
   std::cout << "Creating display and data images" << std::endl;
-  >>>>>>> feat_panda3d
-    vpImage<vpRGBf> normalsImage;
+  vpImage<vpRGBf> normalsImage;
   vpImage<vpRGBf> cameraNormalsImage;
   vpImage<vpRGBf> cannyRawData;
   vpImage<float> depthImage;
