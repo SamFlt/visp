@@ -37,6 +37,7 @@
 
 vpPanda3DRendererSet::vpPanda3DRendererSet(const vpPanda3DRenderParameters &renderParameters) : vpPanda3DBaseRenderer("set")
 {
+  std::cout << "AAAAAAAAAAAAAAAAAAA" << std::endl;
   m_renderParameters = renderParameters;
   load_prc_file_data("", "textures-power-2 none");
 }
@@ -70,6 +71,7 @@ void vpPanda3DRendererSet::initFramework()
 
   m_window->set_background_type(WindowFramework::BackgroundType::BT_black);
   for (std::shared_ptr<vpPanda3DBaseRenderer> &renderer: m_subRenderers) {
+    std::cout << "INitializing renderer " << renderer->getName() << std::endl;
     renderer->initFromParent(m_framework, m_window);
   }
 }

@@ -33,13 +33,10 @@
 
 #if defined(VISP_HAVE_PANDA3D)
 
-<<<<<<< HEAD
-=======
 #include "orthographicLens.h"
 #include "cardMaker.h"
 #include "texturePool.h"
 
->>>>>>> feat_panda3d
 const char *vpPanda3DRGBRenderer::COOK_TORRANCE_VERT = R"shader(
 #version 330
 
@@ -245,8 +242,6 @@ void vpPanda3DRGBRenderer::addNodeToScene(const NodePath &object)
 }
 
 
-<<<<<<< HEAD
-=======
 void vpPanda3DRGBRenderer::setBackgroundImage(const vpImage<vpRGBa> &background)
 {
 
@@ -295,7 +290,6 @@ void vpPanda3DRGBRenderer::setBackgroundImage(const vpImage<vpRGBa> &background)
 
 }
 
->>>>>>> feat_panda3d
 void vpPanda3DRGBRenderer::getRender(vpImage<vpRGBa> &I) const
 {
   I.resize(m_colorTexture->get_y_size(), m_colorTexture->get_x_size());
@@ -307,10 +301,6 @@ void vpPanda3DRGBRenderer::getRender(vpImage<vpRGBa> &I) const
   rowIncrement = -rowIncrement;
 
   for (unsigned int i = 0; i < I.getHeight(); ++i) {
-<<<<<<< HEAD
-    data += rowIncrement;
-=======
->>>>>>> feat_panda3d
     vpRGBa *colorRow = I[i];
     for (unsigned int j = 0; j < I.getWidth(); ++j) {
       // BGRA order in panda3d
@@ -319,10 +309,7 @@ void vpPanda3DRGBRenderer::getRender(vpImage<vpRGBa> &I) const
       colorRow[j].R = data[j * 4 + 2];
       colorRow[j].A = data[j * 4 + 3];
     }
-<<<<<<< HEAD
-=======
     data += rowIncrement;
->>>>>>> feat_panda3d
   }
 
 

@@ -233,7 +233,6 @@ public:
    * the maximum likelihood.
    */
   void track(const vpImage<unsigned char> &I, const vpMe *me, const bool &test_contrast = true);
-<<<<<<< HEAD
 
   /*!
    * Similar to the \ref track function, but stores the best numCandidates hypotheses in \ref outputHypotheses.
@@ -247,8 +246,6 @@ public:
    */
   void trackMultipleHypotheses(const vpImage<unsigned char> &I, const vpMe &me, const bool &test_contrast,
                               std::vector<vpMeSite> &outputHypotheses, const unsigned numCandidates);
-=======
->>>>>>> feat_panda3d
 
   /*!
    * Set the angle of tangent at site.

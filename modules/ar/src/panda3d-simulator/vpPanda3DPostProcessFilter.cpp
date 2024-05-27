@@ -130,11 +130,11 @@ void vpPanda3DPostProcessFilter::getRenderBasic(vpImage<unsigned char> &I) const
   rowIncrement = -rowIncrement;
 
   for (unsigned int i = 0; i < I.getHeight(); ++i) {
-    data += rowIncrement;
     unsigned char *colorRow = I[i];
     for (unsigned int j = 0; j < I.getWidth(); ++j) {
       colorRow[j] = data[j * numComponents];
     }
+    data += rowIncrement;
   }
 }
 
@@ -153,14 +153,13 @@ void vpPanda3DPostProcessFilter::getRenderBasic(vpImage<vpRGBf> &I) const
   rowIncrement = -rowIncrement;
 
   for (unsigned int i = 0; i < I.getHeight(); ++i) {
-    data += rowIncrement;
     vpRGBf *colorRow = I[i];
     for (unsigned int j = 0; j < I.getWidth(); ++j) {
       colorRow[j].B = data[j * numComponents];
       colorRow[j].G = data[j * numComponents + 1];
       colorRow[j].R = data[j * numComponents + 2];
-
     }
+    data += rowIncrement;
   }
 }
 
