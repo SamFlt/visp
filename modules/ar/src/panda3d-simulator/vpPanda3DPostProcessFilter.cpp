@@ -35,7 +35,6 @@ void vpPanda3DPostProcessFilter::setupScene()
                         m_fragmentShader);
   m_renderRoot.set_shader(m_shader);
   m_renderRoot.set_shader_input("dp", LVector2f(1.0 / buffer->get_texture()->get_x_size(), 1.0 / buffer->get_texture()->get_y_size()));
-  std::cout << m_fragmentShader << std::endl;
   m_renderRoot.set_texture(buffer->get_texture());
   m_renderRoot.set_attrib(LightRampAttrib::make_identity());
 }

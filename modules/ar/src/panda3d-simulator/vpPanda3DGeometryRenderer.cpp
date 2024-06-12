@@ -211,7 +211,6 @@ void vpPanda3DGeometryRenderer::getRender(vpImage<vpRGBf> &normals, vpImage<floa
 
 void vpPanda3DGeometryRenderer::getRender(vpImage<vpRGBf> &normals) const
 {
-  std::cout << "in get render" << std::endl;
   normals.resize(m_normalDepthTexture->get_y_size(), m_normalDepthTexture->get_x_size());
   if (m_normalDepthTexture->get_component_type() != Texture::T_float) {
     throw vpException(vpException::badValue, "Unexpected data type in normals texture");
@@ -221,7 +220,6 @@ void vpPanda3DGeometryRenderer::getRender(vpImage<vpRGBf> &normals) const
   float *data = (float *)(&(m_normalDepthTexture->get_ram_image().front()));
   data = data + rowIncrement * (normals.getHeight() - 1);
   rowIncrement = -rowIncrement;
-  std::cout << normals.getHeight() << ", " << normals.getCols() << ", " << m_normalDepthTexture->get_ram_image().front() << std::endl;
   for (unsigned int i = 0; i < normals.getHeight(); ++i) {
     vpRGBf *normalRow = normals[i];
     for (unsigned int j = 0; j < normals.getWidth(); ++j) {
