@@ -1,7 +1,6 @@
-/****************************************************************************
- *
+/*
  * ViSP, open source Visual Servoing Platform software.
- * Copyright (C) 2005 - 2023 by Inria. All rights reserved.
+ * Copyright (C) 2005 - 2024 by Inria. All rights reserved.
  *
  * This software is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,8 +28,8 @@
  * WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#ifndef vpPanda3DRenderParameters_h
-#define vpPanda3DRenderParameters_h
+#ifndef VP_PANDA3D_RENDER_PARAMETERS_H
+#define VP_PANDA3D_RENDER_PARAMETERS_H
 
 #include <visp3/core/vpConfig.h>
 
@@ -39,6 +38,7 @@
 
 class Camera;
 
+BEGIN_VISP_NAMESPACE
 /**
  * @brief Rendering parameters for a panda3D simulation
  *
@@ -46,7 +46,7 @@ class Camera;
  *  - Camera intrinsics
  *  - Image resolution
  *  - Clipping parameters
- */
+*/
 class VISP_EXPORT vpPanda3DRenderParameters
 {
 public:
@@ -124,5 +124,6 @@ private:
   double m_clipNear, m_clipFar;
 };
 
+END_VISP_NAMESPACE
 #endif
 #endif

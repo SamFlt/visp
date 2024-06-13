@@ -43,6 +43,8 @@
 #include <visp3/me/vpMe.h>
 #include <visp3/me/vpMeSite.h>
 
+BEGIN_VISP_NAMESPACE
+
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 static bool horsImage(int i, int j, int half, int rows, int cols)
 {
@@ -465,10 +467,6 @@ std::vector<vpMeSite> &outputHypotheses, const unsigned numCandidates)
 
 int vpMeSite::operator!=(const vpMeSite &m) { return ((m.m_i != m_i) || (m.m_j != m_j)); }
 
-VISP_EXPORT std::ostream &operator<<(std::ostream &os, vpMeSite &vpMeS)
-{
-  return (os << "Alpha: " << vpMeS.m_alpha << "  Convolution: " << vpMeS.m_convlt << "  Weight: " << vpMeS.m_weight << "  Threshold: " << vpMeS.m_contrastThreshold);
-}
 
 void vpMeSite::display(const vpImage<unsigned char> &I) const { vpMeSite::display(I, m_ifloat, m_jfloat, m_state); }
 
@@ -532,3 +530,10 @@ void vpMeSite::display(const vpImage<vpRGBa> &I, const double &i, const double &
     vpDisplay::displayCross(I, vpImagePoint(i, j), 3, vpColor::yellow, 1);
   }
 }
+
+VISP_EXPORT std::ostream &operator<<(std::ostream &os, vpMeSite &vpMeS)
+{
+  return (os << "Alpha: " << vpMeS.m_alpha << "  Convolution: " << vpMeS.m_convlt << "  Weight: " << vpMeS.m_weight << "  Threshold: " << vpMeS.m_contrastThreshold);
+}
+
+END_VISP_NAMESPACE
