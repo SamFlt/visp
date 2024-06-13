@@ -37,6 +37,8 @@
 
 #include "load_prc_file.h"
 #include <antialiasAttrib.h>
+#include "boundingSphere.h"
+#include "boundingBox.h"
 
 const vpHomogeneousMatrix vpPanda3DBaseRenderer::VISP_T_PANDA({
   1.0, 0.0, 0.0, 0.0,
@@ -45,6 +47,9 @@ const vpHomogeneousMatrix vpPanda3DBaseRenderer::VISP_T_PANDA({
   0.0, 0.0, 0.0, 1.0
 });
 const vpHomogeneousMatrix vpPanda3DBaseRenderer::PANDA_T_VISP(vpPanda3DBaseRenderer::VISP_T_PANDA.inverse());
+
+
+
 
 void vpPanda3DBaseRenderer::initFramework()
 {
@@ -154,7 +159,7 @@ vpHomogeneousMatrix vpPanda3DBaseRenderer::getNodePose(NodePath &object)
   return vpHomogeneousMatrix(t, q) * PANDA_T_VISP;
 }
 
-void vpPanda3DBaseRenderer::computeNearAndFarPlanesFromNode(const std::string &name, float &nearV, float &farV)
+void vpPanda3DBaseRenderer::computeNearAndFarPlanesFromNode(const std::string &name, float &nearV, float &farV, bool fast)
 {
   if (m_camera == nullptr) {
     throw vpException(vpException::notInitialized, "Cannot compute planes when the camera is not initialized");
@@ -163,10 +168,42 @@ void vpPanda3DBaseRenderer::computeNearAndFarPlanesFromNode(const std::string &n
   if (object.is_empty()) {
     throw vpException(vpException::badValue, "Node %s was not found", name.c_str());
   }
-  LPoint3 minP, maxP;
-  object.calc_tight_bounds(minP, maxP, m_cameraPath);
-  nearV = vpMath::maximum<float>(0.f, minP.get_y());
-  farV = vpMath::maximum<float>(nearV, maxP.get_y());
+  if (!fast) {
+    LPoint3 minP, maxP;
+
+    object.calc_tight_bounds(minP, maxP, m_cameraPath);
+    nearV = vpMath::maximum<float>(0.f, minP.get_y());
+    farV = vpMath::maximum<float>(nearV, maxP.get_y());
+  }
+  else {
+    const BoundingVolume *volume = object.node()->get_bounds();
+    if (volume->get_type() == BoundingSphere::get_class_type()) {
+      const BoundingSphere *sphere = (const BoundingSphere *)volume;
+      const LPoint3 center = sphere->get_center();
+      const float distCenter = (center -m_cameraPath.get_pos()).length();
+      nearV = vpMath::maximum<float>(0.f, distCenter - sphere->get_radius());
+      farV = vpMath::maximum<float>(nearV, distCenter + sphere->get_radius());
+    }
+    else if (volume->get_type() == BoundingBox::get_class_type()) {
+      throw vpException(vpException::fatalError, "Unhandled bounding box type returned by Panda3d");
+    }
+    else {
+      throw vpException(vpException::fatalError, "Unhandled bounding volume %s type returned by Panda3d", volume->get_type().get_name().c_str());
+    }
+  }
+}
+
+void vpPanda3DBaseRenderer::enableSharedDepthBuffer(vpPanda3DBaseRenderer &sourceBuffer)
+{
+  if (isRendering3DScene()) {
+    GraphicsOutput *buffer = getMainOutputBuffer();
+    if (buffer != nullptr) {
+      buffer->set_clear_depth_active(false);
+      if (!buffer->share_depth_buffer(sourceBuffer.getMainOutputBuffer())) {
+        throw vpException(vpException::fatalError, "Could not share depth buffer!");
+      }
+    }
+  }
 }
 
 NodePath vpPanda3DBaseRenderer::loadObject(const std::string &nodeName, const std::string &modelPath)

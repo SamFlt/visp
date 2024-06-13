@@ -181,4 +181,12 @@ void vpPanda3DRendererSet::addSubRenderer(std::shared_ptr<vpPanda3DBaseRenderer>
   }
 }
 
+void vpPanda3DRendererSet::enableSharedDepthBuffer(vpPanda3DBaseRenderer &sourceBuffer)
+{
+  for (std::shared_ptr<vpPanda3DBaseRenderer> &subRenderer: m_subRenderers) {
+    if (subRenderer.get() != &sourceBuffer) {
+      subRenderer->enableSharedDepthBuffer(sourceBuffer);
+    }
+  }
+}
 #endif

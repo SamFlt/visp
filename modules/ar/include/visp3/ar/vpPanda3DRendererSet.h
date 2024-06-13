@@ -147,6 +147,9 @@ public:
    */
   void addSubRenderer(std::shared_ptr<vpPanda3DBaseRenderer> renderer);
 
+  void enableSharedDepthBuffer(vpPanda3DBaseRenderer &sourceBuffer) vp_override;
+
+
   /**
    * @brief Retrieve the first subrenderer with the specified template type.
    *

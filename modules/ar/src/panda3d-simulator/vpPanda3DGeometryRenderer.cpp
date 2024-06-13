@@ -158,7 +158,7 @@ void vpPanda3DGeometryRenderer::setupRenderTarget()
   GraphicsEngine *engine = windowOutput->get_engine();
   GraphicsPipe *pipe = windowOutput->get_pipe();
 
-  m_normalDepthBuffer = engine->make_output(pipe, renderTypeToName(m_renderType), -100, fbp, win_prop, flags,
+  m_normalDepthBuffer = engine->make_output(pipe, renderTypeToName(m_renderType), m_renderOrder, fbp, win_prop, flags,
                                             windowOutput->get_gsg(), windowOutput);
 
   if (m_normalDepthBuffer == nullptr) {
