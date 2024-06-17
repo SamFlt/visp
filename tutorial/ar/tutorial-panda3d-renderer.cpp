@@ -132,6 +132,16 @@ int main(int argc, const char **argv)
     return (false);
   }
 
+  if (PStatClient::is_connected()) {
+    PStatClient::disconnect();
+  }
+
+  std::string host = ""; // Empty = default config var value
+  int port = -1; // -1 = default config var value
+  if (!PStatClient::connect(host, port)) {
+    std::cout << "Could not connect to PStat server." << std::endl;
+  }
+
   std::string modelPath;
   if (modelPathCstr) {
     modelPath = modelPathCstr;
@@ -147,7 +157,7 @@ int main(int argc, const char **argv)
   const std::string objectName = "object";
 
   //! [Renderer set]
-  vpPanda3DRenderParameters renderParams(vpCameraParameters(300, 300, 160, 120), 240, 320, 0.01, 10.0);
+  vpPanda3DRenderParameters renderParams(vpCameraParameters(600, 600, 320, 240), 480, 640, 0.01, 10.0);
   vpPanda3DRendererSet renderer(renderParams);
   renderer.setRenderParameters(renderParams);
   renderer.setVerticalSyncEnabled(false);
@@ -215,7 +225,6 @@ int main(int argc, const char **argv)
 
   //! [Scene configuration]
 
-  unsigned h = renderParams.getImageHeight(), w = renderParams.getImageWidth();
   std::cout << "Creating display and data images" << std::endl;
   vpImage<vpRGBf> normalsImage;
   vpImage<vpRGBf> cameraNormalsImage;
@@ -262,7 +271,7 @@ int main(int argc, const char **argv)
   while (!end) {
     float nearV = 0, farV = 0;
     const double beforeComputeBB = vpTime::measureTimeMs();
-    rgbRenderer->computeNearAndFarPlanesFromNode(objectName, nearV, farV);
+    rgbRenderer->computeNearAndFarPlanesFromNode(objectName, nearV, farV, true);
     renderParams.setClippingDistance(nearV, farV);
     renderer.setRenderParameters(renderParams);
     //std::cout << "Update clipping plane took " << vpTime::measureTimeMs() - beforeComputeBB << std::endl;
@@ -327,7 +336,7 @@ int main(int argc, const char **argv)
     std::cout << "Display time: " << vpMath::getMean(displayTime) << "ms +- " << vpMath::getStdev(displayTime) << "ms" << std::endl;
   }
   return 0;
-}
+  }
 
 #else
 

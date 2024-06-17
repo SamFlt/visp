@@ -68,6 +68,15 @@ public:
   }
 
   GraphicsOutput *getMainOutputBuffer() vp_override { return m_buffer; }
+  void afterRenderedFrame() vp_override
+  {
+    if (m_isOutput) {
+      if (!m_buffer->get_engine()->extract_texture_data(m_texture, m_buffer->get_gsg())) {
+        throw vpException(vpException::fatalError, "Could not copy texture to ram");
+      }
+
+    }
+  }
 
 protected:
   virtual void setupScene() vp_override;

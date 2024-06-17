@@ -193,6 +193,15 @@ protected:
 
   void setupCamera() vp_override { }
 
+  void afterRenderedFrame() vp_override
+  {
+
+    for (std::shared_ptr<vpPanda3DBaseRenderer> &renderer: m_subRenderers) {
+      renderer->afterRenderedFrame();
+    }
+
+  }
+
 private:
   std::vector<std::shared_ptr<vpPanda3DBaseRenderer>> m_subRenderers;
 };

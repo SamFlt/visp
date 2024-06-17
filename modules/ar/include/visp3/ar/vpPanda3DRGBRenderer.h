@@ -96,7 +96,15 @@ public:
 
   bool isShowingSpeculars() const { return m_showSpeculars; }
 
+  void afterRenderedFrame() vp_override
+  {
+    if (!m_colorBuffer->get_engine()->extract_texture_data(m_colorTexture, m_colorBuffer->get_gsg())) {
+      throw vpException(vpException::fatalError, "Could not extract rgb to ram");
+    }
+  }
 protected:
+
+
   void setupScene() vp_override;
   void setupRenderTarget() vp_override;
   virtual std::string makeFragmentShader(bool hasTexture, bool specular);

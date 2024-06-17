@@ -72,6 +72,7 @@ public:
    */
   virtual void initFramework();
 
+
   /**
    * @brief
    *
@@ -82,6 +83,7 @@ public:
 
 
   virtual void renderFrame();
+
 
   /**
    * @brief Get the name of the renderer
@@ -263,7 +265,9 @@ public:
 
   virtual void enableSharedDepthBuffer(vpPanda3DBaseRenderer &sourceBuffer);
 
+  virtual void afterRenderedFrame() = 0;
 protected:
+
 
   /**
    * @brief Initialize the scene for this specific renderer.

@@ -83,6 +83,10 @@ public:
   void getRender(vpImage<float> &depth) const;
 
   GraphicsOutput *getMainOutputBuffer() vp_override { return m_normalDepthBuffer; }
+  void afterRenderedFrame() vp_override
+  {
+    m_normalDepthBuffer->get_engine()->extract_texture_data(m_normalDepthTexture, m_normalDepthBuffer->get_gsg());
+  }
 
 protected:
   void setupScene() vp_override;

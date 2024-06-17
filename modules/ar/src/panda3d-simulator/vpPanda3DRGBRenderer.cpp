@@ -348,7 +348,7 @@ void vpPanda3DRGBRenderer::setupRenderTarget()
   m_colorTexture = new Texture();
   fbp.setup_color_texture(m_colorTexture);
   //m_colorTexture->set_format(Texture::Format::F_srgb_alpha);
-  m_colorBuffer->add_render_texture(m_colorTexture, GraphicsOutput::RenderTextureMode::RTM_copy_ram);
+  m_colorBuffer->add_render_texture(m_colorTexture, GraphicsOutput::RenderTextureMode::RTM_copy_texture);
   m_colorBuffer->set_clear_color(LColor(0.f));
   m_colorBuffer->set_clear_color_active(true);
   DisplayRegion *region = m_colorBuffer->make_display_region();
