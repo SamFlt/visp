@@ -176,10 +176,6 @@ void vpPanda3DRendererSet::addSubRenderer(std::shared_ptr<vpPanda3DBaseRenderer>
     ++it;
   }
   m_subRenderers.insert(it, renderer);
-  for (const auto &r: m_subRenderers) {
-    std::cout << r->getName() << " ";
-  }
-  std::cout << std::endl;
 
   renderer->setRenderParameters(m_renderParameters);
   if (m_framework != nullptr) {

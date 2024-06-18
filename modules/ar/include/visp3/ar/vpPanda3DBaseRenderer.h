@@ -104,31 +104,7 @@ public:
    *
    * @param params the new rendering parameters
    */
-  virtual void setRenderParameters(const vpPanda3DRenderParameters &params)
-  {
-    unsigned int previousH = m_renderParameters.getImageHeight(), previousW = m_renderParameters.getImageWidth();
-    bool resize = previousH != params.getImageHeight() || previousW != params.getImageWidth();
-
-    m_renderParameters = params;
-
-    if (resize) {
-      for (GraphicsOutput *buffer: m_buffers) {
-        //buffer->get_type().is_derived_from()
-        GraphicsBuffer *buf = dynamic_cast<GraphicsBuffer *>(buffer);
-        if (buf == nullptr) {
-          throw vpException(vpException::fatalError, "Panda3D: could not cast to GraphicsBuffer when rendering.");
-        }
-        else {
-          buf->set_size(m_renderParameters.getImageWidth(), m_renderParameters.getImageHeight());
-        }
-      }
-    }
-
-    // If renderer is already initialized, modify camera properties
-    if (m_camera != nullptr) {
-      m_renderParameters.setupPandaCamera(m_camera);
-    }
-  }
+  virtual void setRenderParameters(const vpPanda3DRenderParameters &params);
 
   /**
    * @brief Returns true if this renderer process 3D data and its scene root can be interacted with.

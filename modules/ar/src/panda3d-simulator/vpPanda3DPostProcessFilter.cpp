@@ -122,7 +122,6 @@ void vpPanda3DPostProcessFilter::setupRenderTarget()
 
 void vpPanda3DPostProcessFilter::setRenderParameters(const vpPanda3DRenderParameters &params)
 {
-  m_renderParameters = params;
   unsigned int previousH = m_renderParameters.getImageHeight(), previousW = m_renderParameters.getImageWidth();
   bool resize = previousH != params.getImageHeight() || previousW != params.getImageWidth();
 

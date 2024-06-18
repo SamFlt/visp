@@ -111,6 +111,32 @@ void vpPanda3DBaseRenderer::renderFrame()
   afterFrameRendered();
 }
 
+void vpPanda3DBaseRenderer::setRenderParameters(const vpPanda3DRenderParameters &params)
+{
+  unsigned int previousH = m_renderParameters.getImageHeight(), previousW = m_renderParameters.getImageWidth();
+  bool resize = previousH != params.getImageHeight() || previousW != params.getImageWidth();
+
+  m_renderParameters = params;
+
+  if (resize) {
+    for (GraphicsOutput *buffer: m_buffers) {
+      //buffer->get_type().is_derived_from()
+      GraphicsBuffer *buf = dynamic_cast<GraphicsBuffer *>(buffer);
+      if (buf == nullptr) {
+        throw vpException(vpException::fatalError, "Panda3D: could not cast to GraphicsBuffer when rendering.");
+      }
+      else {
+        buf->set_size(m_renderParameters.getImageWidth(), m_renderParameters.getImageHeight());
+      }
+    }
+  }
+
+  // If renderer is already initialized, modify camera properties
+  if (m_camera != nullptr) {
+    m_renderParameters.setupPandaCamera(m_camera);
+  }
+}
+
 void vpPanda3DBaseRenderer::setCameraPose(const vpHomogeneousMatrix &wTc)
 {
   if (m_camera.is_null() || m_cameraPath.is_empty()) {
@@ -153,6 +179,7 @@ vpHomogeneousMatrix vpPanda3DBaseRenderer::getNodePose(const std::string &name)
 
 vpHomogeneousMatrix vpPanda3DBaseRenderer::getNodePose(NodePath &object)
 {
+
   const LPoint3 pos = object.get_pos();
   const LQuaternion quat = object.get_quat();
   const vpTranslationVector t(pos[0], pos[1], pos[2]);
@@ -186,7 +213,25 @@ void vpPanda3DBaseRenderer::computeNearAndFarPlanesFromNode(const std::string &n
       farV = vpMath::maximum<float>(nearV, distCenter + sphere->get_radius());
     }
     else if (volume->get_type() == BoundingBox::get_class_type()) {
-      throw vpException(vpException::fatalError, "Unhandled bounding box type returned by Panda3d");
+      const vpHomogeneousMatrix wTcam = getCameraPose();
+      const vpHomogeneousMatrix wTobj = getNodePose(object);
+      const vpHomogeneousMatrix camTobj = wTcam.inverse() * wTobj;
+      const BoundingBox *box = (const BoundingBox *)volume;
+      double minZ = std::numeric_limits<double>::max(), maxZ = 0.0;
+
+      for (unsigned int i = 0; i < 8; ++i) {
+        const LPoint3 p = box->get_point(i);
+        vpColVector cp = camTobj * vpColVector({ p.get_x(), -p.get_z(), p.get_y(), 1.0 });
+        double Z = cp[2] / cp[3];
+        if (Z < minZ) {
+          minZ = Z;
+        }
+        if (Z > maxZ) {
+          maxZ = Z;
+        }
+      }
+      nearV = minZ;
+      farV = maxZ;
     }
     else {
       throw vpException(vpException::fatalError, "Unhandled bounding volume %s type returned by Panda3d", volume->get_type().get_name().c_str());

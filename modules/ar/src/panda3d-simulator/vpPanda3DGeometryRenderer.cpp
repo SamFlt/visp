@@ -185,6 +185,7 @@ void vpPanda3DGeometryRenderer::setupRenderTarget()
 
 void vpPanda3DGeometryRenderer::getRender(vpImage<vpRGBf> &normals, vpImage<float> &depth) const
 {
+
   normals.resize(m_normalDepthTexture->get_y_size(), m_normalDepthTexture->get_x_size());
   depth.resize(m_normalDepthTexture->get_y_size(), m_normalDepthTexture->get_x_size());
   if (m_normalDepthTexture->get_component_type() != Texture::T_float) {
