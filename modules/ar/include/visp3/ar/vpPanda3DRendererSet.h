@@ -134,7 +134,7 @@ public:
    */
   void addNodeToScene(const NodePath &object) vp_override;
 
-  void setRenderParameters(const vpPanda3DRenderParameters &params) vp_override;
+  virtual void setRenderParameters(const vpPanda3DRenderParameters &params) vp_override;
 
   void addLight(const vpPanda3DLight &light) vp_override;
 
@@ -188,21 +188,24 @@ public:
     return nullptr;
   }
 
+  void beforeFrameRendered() vp_override
+  {
+    for (std::shared_ptr<vpPanda3DBaseRenderer> &renderer: m_subRenderers) {
+      renderer->beforeFrameRendered();
+    }
+  }
+  void afterFrameRendered() vp_override
+  {
+    for (std::shared_ptr<vpPanda3DBaseRenderer> &renderer: m_subRenderers) {
+      renderer->afterFrameRendered();
+    }
+  }
+
 protected:
   void setupScene() vp_override { }
 
   void setupCamera() vp_override { }
 
-  void afterRenderedFrame() vp_override
-  {
-
-    for (std::shared_ptr<vpPanda3DBaseRenderer> &renderer: m_subRenderers) {
-      renderer->afterRenderedFrame();
-    }
-
-  }
-
-private:
   std::vector<std::shared_ptr<vpPanda3DBaseRenderer>> m_subRenderers;
 };
 END_VISP_NAMESPACE

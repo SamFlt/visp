@@ -157,7 +157,8 @@ int main(int argc, const char **argv)
   const std::string objectName = "object";
 
   //! [Renderer set]
-  vpPanda3DRenderParameters renderParams(vpCameraParameters(600, 600, 320, 240), 480, 640, 0.01, 10.0);
+  double factor = 2.0;
+  vpPanda3DRenderParameters renderParams(vpCameraParameters(600 * factor, 600 * factor, 320 * factor, 240 * factor), int(480 * factor), int(640 * factor), 0.01, 10.0);
   vpPanda3DRendererSet renderer(renderParams);
   renderer.setRenderParameters(renderParams);
   renderer.setVerticalSyncEnabled(false);
@@ -173,8 +174,7 @@ int main(int argc, const char **argv)
   std::shared_ptr<vpPanda3DRGBRenderer> rgbRenderer = std::make_shared<vpPanda3DRGBRenderer>();
   std::shared_ptr<vpPanda3DRGBRenderer> rgbDiffuseRenderer = std::make_shared<vpPanda3DRGBRenderer>(false);
   std::shared_ptr<vpPanda3DLuminanceFilter> grayscaleFilter = std::make_shared<vpPanda3DLuminanceFilter>("toGrayscale", rgbRenderer, false);
-  std::shared_ptr<vpPanda3DGaussianBlur> blurFilter = std::make_shared<vpPanda3DGaussianBlur>("blur", grayscaleFilter, false);
-  std::shared_ptr<vpPanda3DCanny> cannyFilter = std::make_shared<vpPanda3DCanny>("canny", blurFilter, true, 10.f);
+  std::shared_ptr<vpPanda3DCanny> cannyFilter = std::make_shared<vpPanda3DCanny>("canny", grayscaleFilter, true, 10.f);
   //! [Subrenderers init]
 
   //! [Adding subrenderers]
@@ -186,7 +186,6 @@ int main(int argc, const char **argv)
   }
   if (showCanny) {
     renderer.addSubRenderer(grayscaleFilter);
-    renderer.addSubRenderer(blurFilter);
     renderer.addSubRenderer(cannyFilter);
   }
   std::cout << "Initializing Panda3D rendering framework" << std::endl;
@@ -336,7 +335,7 @@ int main(int argc, const char **argv)
     std::cout << "Display time: " << vpMath::getMean(displayTime) << "ms +- " << vpMath::getStdev(displayTime) << "ms" << std::endl;
   }
   return 0;
-  }
+}
 
 #else
 

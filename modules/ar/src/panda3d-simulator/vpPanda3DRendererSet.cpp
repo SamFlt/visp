@@ -51,11 +51,11 @@ void vpPanda3DRendererSet::initFramework()
   // load_prc_file_data("", "auto-flip 1");
   // load_prc_file_data("", "sync-video 0");
   // load_prc_file_data("", "multisamples 1\n"
-  //           "background-color 0.0 0.0 0.0 0.0\n"
-  //           "load-file-type p3assimp\n"
-  //           "transform-cache 0\n"
-  //           "state-cache 0\n"
-  //           "audio-library-name null\n"
+  //           // "background-color 0.0 0.0 0.0 0.0\n"
+  //           // "load-file-type p3assimp\n"
+  //           // "transform-cache 0\n"
+  //           // "state-cache 0\n"
+  //           // "audio-library-name null\n"
   //           "model-cache-dir\n"
   //           "notify-level-glgsg spam");
 

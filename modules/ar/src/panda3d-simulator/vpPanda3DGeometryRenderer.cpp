@@ -172,7 +172,7 @@ void vpPanda3DGeometryRenderer::setupRenderTarget()
   m_normalDepthBuffer->set_inverted(windowOutput->get_gsg()->get_copy_texture_inverted());
   fbp.setup_color_texture(m_normalDepthTexture);
   m_normalDepthTexture->set_format(Texture::F_rgba32);
-  m_normalDepthBuffer->add_render_texture(m_normalDepthTexture, GraphicsOutput::RenderTextureMode::RTM_copy_texture);
+  m_normalDepthBuffer->add_render_texture(m_normalDepthTexture, GraphicsOutput::RenderTextureMode::RTM_copy_ram);
   m_normalDepthBuffer->set_clear_color(LColor(0.f));
   m_normalDepthBuffer->set_clear_color_active(true);
   DisplayRegion *region = m_normalDepthBuffer->make_display_region();

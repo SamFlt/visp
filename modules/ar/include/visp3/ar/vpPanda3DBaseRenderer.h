@@ -81,8 +81,9 @@ public:
    */
   void initFromParent(std::shared_ptr<PandaFramework> framework, PT(WindowFramework) window);
 
-
+  virtual void beforeFrameRendered() { }
   virtual void renderFrame();
+  virtual void afterFrameRendered() { }
 
 
   /**
@@ -265,7 +266,8 @@ public:
 
   virtual void enableSharedDepthBuffer(vpPanda3DBaseRenderer &sourceBuffer);
 
-  virtual void afterRenderedFrame() = 0;
+
+
 protected:
 
 

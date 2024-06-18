@@ -106,8 +106,9 @@ void vpPanda3DBaseRenderer::setupCamera()
 
 void vpPanda3DBaseRenderer::renderFrame()
 {
+  beforeFrameRendered();
   m_framework->get_graphics_engine()->render_frame();
-  afterRenderedFrame();
+  afterFrameRendered();
 }
 
 void vpPanda3DBaseRenderer::setCameraPose(const vpHomogeneousMatrix &wTc)
