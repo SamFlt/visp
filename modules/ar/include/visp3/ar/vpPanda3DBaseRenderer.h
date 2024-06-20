@@ -93,6 +93,8 @@ public:
    */
   const std::string &getName() const { return m_name; }
 
+  void setName(const std::string &name) { m_name = name; }
+
   /**
    * @brief Get the scene root
    *
@@ -273,7 +275,7 @@ protected:
 
 
 protected:
-  const std::string m_name; //! name of the renderer
+  std::string m_name; //! name of the renderer
   int m_renderOrder; //! Rendering priority for this renderer and its buffers. A lower value will be rendered first. Should be used when calling make_output in setupRenderTarget()
   std::shared_ptr<PandaFramework> m_framework; //! Pointer to the active panda framework
   PT(WindowFramework) m_window; //! Pointer to owning window, which can create buffers etc. It is not necessarily visible.

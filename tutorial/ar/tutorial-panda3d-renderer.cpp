@@ -157,7 +157,7 @@ int main(int argc, const char **argv)
   const std::string objectName = "object";
 
   //! [Renderer set]
-  double factor = 2.0;
+  double factor = 0.5;
   vpPanda3DRenderParameters renderParams(vpCameraParameters(600 * factor, 600 * factor, 320 * factor, 240 * factor), int(480 * factor), int(640 * factor), 0.01, 10.0);
   vpPanda3DRendererSet renderer(renderParams);
   renderer.setRenderParameters(renderParams);

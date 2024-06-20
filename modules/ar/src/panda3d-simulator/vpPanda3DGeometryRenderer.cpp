@@ -153,7 +153,7 @@ void vpPanda3DGeometryRenderer::setupRenderTarget()
   WindowProperties win_prop;
   win_prop.set_size(m_renderParameters.getImageWidth(), m_renderParameters.getImageHeight());
   // Don't open a window - force it to be an offscreen buffer.
-  int flags = GraphicsPipe::BF_refuse_window  | GraphicsPipe::BF_resizeable;
+  int flags = GraphicsPipe::BF_refuse_window  | GraphicsPipe::BF_resizeable | GraphicsPipe::BF_refuse_parasite;
   GraphicsOutput *windowOutput = m_window->get_graphics_output();
   GraphicsEngine *engine = windowOutput->get_engine();
   GraphicsPipe *pipe = windowOutput->get_pipe();
@@ -172,7 +172,7 @@ void vpPanda3DGeometryRenderer::setupRenderTarget()
   m_normalDepthBuffer->set_inverted(windowOutput->get_gsg()->get_copy_texture_inverted());
   fbp.setup_color_texture(m_normalDepthTexture);
   m_normalDepthTexture->set_format(Texture::F_rgba32);
-  m_normalDepthBuffer->add_render_texture(m_normalDepthTexture, GraphicsOutput::RenderTextureMode::RTM_copy_ram);
+  m_normalDepthBuffer->add_render_texture(m_normalDepthTexture, GraphicsOutput::RenderTextureMode::RTM_copy_ram, GraphicsOutput::RenderTexturePlane::RTP_color);
   m_normalDepthBuffer->set_clear_color(LColor(0.f));
   m_normalDepthBuffer->set_clear_color_active(true);
   DisplayRegion *region = m_normalDepthBuffer->make_display_region();
