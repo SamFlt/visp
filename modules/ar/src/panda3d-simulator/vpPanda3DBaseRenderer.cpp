@@ -255,6 +255,11 @@ void vpPanda3DBaseRenderer::enableSharedDepthBuffer(vpPanda3DBaseRenderer &sourc
 NodePath vpPanda3DBaseRenderer::loadObject(const std::string &nodeName, const std::string &modelPath)
 {
   NodePath model = m_window->load_model(m_framework->get_models(), modelPath);
+  for (int i = 0; i < model.get_num_children(); ++i) {
+    model.get_child(i).clear_transform();
+
+  }
+
   model.detach_node();
   model.set_name(nodeName);
   return model;
