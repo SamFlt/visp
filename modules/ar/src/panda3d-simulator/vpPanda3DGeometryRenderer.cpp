@@ -79,8 +79,10 @@ void main()
     //gl_Position = ftransform();
     gl_Position = p3d_ModelViewProjectionMatrix * p3d_Vertex;
     oNormal = normalize(p3d_Normal);
-    oNormal.yz = oNormal.zy;
-    oNormal.y = -oNormal.y;
+    // oNormal.yz = oNormal.zy;
+    // oNormal.y = -oNormal.y;
+    vec3 on = vec3(oNormal.z, -oNormal.x, -oNormal.y);
+    oNormal = on;
     vec4 cs_position = p3d_ModelViewMatrix * p3d_Vertex;
     distToCamera = -cs_position.z;
 }

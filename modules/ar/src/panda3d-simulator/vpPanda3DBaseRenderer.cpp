@@ -214,7 +214,7 @@ void vpPanda3DBaseRenderer::computeNearAndFarPlanesFromNode(const std::string &n
     }
     else if (volume->get_type() == BoundingBox::get_class_type()) {
       const vpHomogeneousMatrix wTcam = getCameraPose();
-      const vpHomogeneousMatrix wTobj = getNodePose(object);
+      const vpHomogeneousMatrix wTobj = getNodePose(object) * vpPanda3DBaseRenderer::PANDA_T_VISP;
       const vpHomogeneousMatrix camTobj = wTcam.inverse() * wTobj;
       const BoundingBox *box = (const BoundingBox *)volume;
       double minZ = std::numeric_limits<double>::max(), maxZ = 0.0;
