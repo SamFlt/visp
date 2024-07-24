@@ -277,7 +277,7 @@ void vpMeSite::track(const vpImage<unsigned char> &I, const vpMe *me, const bool
   // of the current pixel will be sought
   unsigned int range = me->getRange();
   const unsigned int normalSides = 2;
-  const unsigned int numQueries = normalSides * 2 + 1;
+  const unsigned int numQueries = range * normalSides + 1;
 
   vpMeSite *list_query_pixels = getQueryList(I, static_cast<int>(range));
 
