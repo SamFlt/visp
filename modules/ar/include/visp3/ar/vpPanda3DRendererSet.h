@@ -72,6 +72,9 @@ public:
    */
   void initFramework() VP_OVERRIDE;
 
+  void initFromParent(std::shared_ptr<PandaFramework> framework, std::shared_ptr<WindowFramework> window) VP_OVERRIDE;
+  void initFromParent(const vpPanda3DBaseRenderer &renderer) VP_OVERRIDE;
+
   /**
    * @brief Set the pose of the camera, using the ViSP convention. This change is propagated to all subrenderers
    *

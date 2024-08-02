@@ -88,6 +88,12 @@ void vpPanda3DBaseRenderer::initFromParent(std::shared_ptr<PandaFramework> frame
   setupRenderTarget();
 }
 
+void vpPanda3DBaseRenderer::initFromParent(const vpPanda3DBaseRenderer &renderer)
+{
+  initFromParent(renderer.m_framework, renderer.m_window);
+}
+
+
 void vpPanda3DBaseRenderer::setupScene()
 {
   m_renderRoot = m_window->get_render().attach_new_node(m_name);

@@ -83,6 +83,22 @@ void vpPanda3DRendererSet::initFramework()
   }
 }
 
+void vpPanda3DRendererSet::initFromParent(std::shared_ptr<PandaFramework> framework, std::shared_ptr<WindowFramework> window)
+{
+  vpPanda3DBaseRenderer::initFromParent(framework, window);
+  for (std::shared_ptr<vpPanda3DBaseRenderer> &renderer: m_subRenderers) {
+    renderer->initFromParent(m_framework, m_window);
+  }
+}
+
+void vpPanda3DRendererSet::initFromParent(const vpPanda3DBaseRenderer &renderer)
+{
+  vpPanda3DBaseRenderer::initFromParent(renderer);
+  for (std::shared_ptr<vpPanda3DBaseRenderer> &r: m_subRenderers) {
+    r->initFromParent(*this);
+  }
+}
+
 
 void vpPanda3DRendererSet::setCameraPose(const vpHomogeneousMatrix &wTc)
 {

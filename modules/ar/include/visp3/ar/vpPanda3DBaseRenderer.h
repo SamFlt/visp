@@ -71,15 +71,9 @@ public:
    * Will also perform the renderer setup (scene, camera and render targets)
    */
   virtual void initFramework();
+  virtual void initFromParent(std::shared_ptr<PandaFramework> framework, std::shared_ptr<WindowFramework> window);
+  virtual void initFromParent(const vpPanda3DBaseRenderer &renderer);
 
-
-  /**
-   * @brief
-   *
-   * @param framework
-   * @param window
-   */
-  void initFromParent(std::shared_ptr<PandaFramework> framework, std::shared_ptr<WindowFramework> window);
 
   virtual void beforeFrameRendered() { }
   virtual void renderFrame();
