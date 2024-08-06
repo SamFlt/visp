@@ -168,7 +168,7 @@ vpMatrix::vpMatrix(const vpForceTwistMatrix &F)
 
 /*!
  * Create a matrix from a row vector.
- * @param v : Row vector.
+ * @param R : Rotation matrix.
  */
 vpMatrix::vpMatrix(const vpRotationMatrix &R)
 {
@@ -195,7 +195,7 @@ vpMatrix::vpMatrix(const vpRowVector &v)
 
 /*!
  * Create a matrix from a row vector.
- * @param v : Row vector.
+ * @param t : Translation vector.
  */
 vpMatrix::vpMatrix(const vpTranslationVector &t)
 {
@@ -1455,7 +1455,8 @@ unsigned int vpMatrix::kernel(vpMatrix &kerAt, double svThreshold) const
 
   kerAt.resize(nbcol - rank, nbcol);
   if (rank != nbcol) {
-    for (unsigned int j = 0, k = 0; j < nbcol; ++j) {
+    unsigned int k = 0;
+    for (unsigned int j = 0; j < nbcol; ++j) {
       // if( v.col(j) in kernel and non zero )
       if ((sv[j] <= (maxsv * svThreshold)) &&
           (std::fabs(V.getCol(j).sumSquare()) > std::numeric_limits<double>::epsilon())) {
@@ -1524,7 +1525,8 @@ unsigned int vpMatrix::nullSpace(vpMatrix &kerA, double svThreshold) const
 
   kerA.resize(nbcol, nbcol - rank);
   if (rank != nbcol) {
-    for (unsigned int j = 0, k = 0; j < nbcol; ++j) {
+    unsigned int k = 0;
+    for (unsigned int j = 0; j < nbcol; ++j) {
       // if( v.col(j) in kernel and non zero )
       if (sv[j] <= (maxsv * svThreshold)) {
         for (unsigned int i = 0; i < nbcol; ++i) {

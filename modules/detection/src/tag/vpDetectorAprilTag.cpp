@@ -29,13 +29,15 @@
  *
  * Description:
  * Base class for AprilTag detection.
- *
-*****************************************************************************/
+ */
 #include <visp3/core/vpConfig.h>
 
 #ifdef VISP_HAVE_APRILTAG
 #include <map>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 #include <apriltag.h>
 #include <apriltag_pose.h>
 #include <common/homography.h>
@@ -46,17 +48,20 @@
 #include <tag36h11.h>
 #include <tagCircle21h7.h>
 #include <tagStandard41h12.h>
-#include <visp3/detection/vpDetectorAprilTag.h>
 #if defined(VISP_HAVE_APRILTAG_BIG_FAMILY)
 #include <tagCircle49h12.h>
 #include <tagCustom48h12.h>
 #include <tagStandard41h12.h>
 #include <tagStandard52h13.h>
 #endif
+#ifdef __cplusplus
+}
+#endif
 
 #include <visp3/core/vpDisplay.h>
 #include <visp3/core/vpPixelMeterConversion.h>
 #include <visp3/core/vpPoint.h>
+#include <visp3/detection/vpDetectorAprilTag.h>
 #include <visp3/vision/vpPose.h>
 
 BEGIN_VISP_NAMESPACE
@@ -195,7 +200,7 @@ public:
     }
 
     if ((m_tagFamily != TAG_36ARTOOLKIT) && m_tf) {
-      m_td = apriltag_detector_create();
+      m_td = apriltag_detector_copy(o.m_td);
       apriltag_detector_add_family(m_td, m_tf);
     }
 
@@ -811,7 +816,7 @@ public:
   void setRefineEdges(bool refineEdges)
   {
     if (m_td) {
-      m_td->refine_edges = refineEdges ? 1 : 0;
+      m_td->refine_edges = (refineEdges ? true : false);
     }
   }
 
@@ -831,12 +836,13 @@ protected:
   zarray_t *m_detections;
   bool m_zAlignedWithCameraFrame;
 };
-#endif // DOXYGEN_SHOULD_SKIP_THIS
 
 namespace
 {
 const unsigned int def_tagThickness = 2;
 }
+#endif // DOXYGEN_SHOULD_SKIP_THIS
+
 vpDetectorAprilTag::vpDetectorAprilTag(const vpAprilTagFamily &tagFamily,
                                        const vpPoseEstimationMethod &poseEstimationMethod)
   : m_displayTag(false), m_displayTagColor(vpColor::none), m_displayTagThickness(def_tagThickness),
@@ -1194,7 +1200,7 @@ void vpDetectorAprilTag::setAprilTagRefineDecode(bool refineDecode)
   </blockquote>
   Default is 1.
 
-  \param refineEdges : If true, set refine_edges to 1.
+  \param refineEdges : If true, set refine edges parameter.
 */
 void vpDetectorAprilTag::setAprilTagRefineEdges(bool refineEdges) { m_impl->setRefineEdges(refineEdges); }
 

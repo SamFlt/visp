@@ -244,7 +244,7 @@ vpColVector::vpColVector(const vpMatrix &M) : vpArray2D<double>(M.getRows(), 1)
 
 vpColVector::vpColVector(const std::vector<double> &v) : vpArray2D<double>(static_cast<unsigned int>(v.size()), 1)
 {
-  unsigned int v_size = v.size();
+  unsigned int v_size = static_cast<unsigned int>(v.size());
   for (unsigned int i = 0; i < v_size; ++i) {
     (*this)[i] = v[i];
   }
@@ -252,7 +252,7 @@ vpColVector::vpColVector(const std::vector<double> &v) : vpArray2D<double>(stati
 
 vpColVector::vpColVector(const std::vector<float> &v) : vpArray2D<double>(static_cast<unsigned int>(v.size()), 1)
 {
-  unsigned int v_size = v.size();
+  unsigned int v_size = static_cast<unsigned int>(v.size());
   for (unsigned int i = 0; i < v_size; ++i) {
     (*this)[i] = static_cast<double>(v[i]);
   }
@@ -350,7 +350,7 @@ vpColVector &vpColVector::operator=(const vpMatrix &M)
 
 vpColVector &vpColVector::operator=(const std::vector<double> &v)
 {
-  unsigned int v_size = v.size();
+  unsigned int v_size = static_cast<unsigned int>(v.size());
   resize(v_size, false);
   for (unsigned int i = 0; i < v_size; ++i) {
     (*this)[i] = v[i];
@@ -360,7 +360,7 @@ vpColVector &vpColVector::operator=(const std::vector<double> &v)
 
 vpColVector &vpColVector::operator=(const std::vector<float> &v)
 {
-  unsigned int v_size = v.size();
+  unsigned int v_size = static_cast<unsigned int>(v.size());
   resize(v_size, false);
   for (unsigned int i = 0; i < v_size; ++i) {
     (*this)[i] = static_cast<float>(v[i]);

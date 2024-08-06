@@ -53,12 +53,14 @@
 
 BEGIN_VISP_NAMESPACE
 
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
 namespace
 {
 const int def_vvsIterMax = 200;
 const unsigned int def_ransacNbInlier = 4;
 const int def_ransacMaxTrials = 1000;
 }
+#endif // DOXYGEN_SHOULD_SKIP_THIS
 
 vpPose::vpPose()
   : npt(0), listP(), residual(0), m_lambda(0.9), m_dementhonSvThresh(1e-6), vvsIterMax(def_vvsIterMax), c3d(),
@@ -204,13 +206,14 @@ bool vpPose::coplanar(int &coplanar_plane_type, double *p_a, double *p_b, double
               z2 = P2.get_oZ();
               z3 = P3.get_oZ();
 
+              const int idX = 0, idY = 1, idZ = 2;
               vpColVector a_b(3), b_c(3), cross_prod;
-              a_b[0] = x1 - x2;
-              a_b[1] = y1 - y2;
-              a_b[2] = z1 - z2;
-              b_c[0] = x2 - x3;
-              b_c[1] = y2 - y3;
-              b_c[2] = z2 - z3;
+              a_b[idX] = x1 - x2;
+              a_b[idY] = y1 - y2;
+              a_b[idZ] = z1 - z2;
+              b_c[idX] = x2 - x3;
+              b_c[idY] = y2 - y3;
+              b_c[idZ] = z2 - z3;
 
               cross_prod = vpColVector::crossProd(a_b, b_c);
               if (cross_prod.sumSquare() <= std::numeric_limits<double>::epsilon()) {
@@ -379,7 +382,7 @@ void vpPose::callLagrangePose(vpHomogeneousMatrix &cMo)
   }
 }
 
-bool vpPose::computePose(vpPoseMethodType method, vpHomogeneousMatrix &cMo, funcCheckValidityPose func)
+bool vpPose::computePose(vpPoseMethodType method, vpHomogeneousMatrix &cMo, FuncCheckValidityPose func)
 {
   const int minNbPtDementhon = 4;
   const int minNbPtRansac = 4;

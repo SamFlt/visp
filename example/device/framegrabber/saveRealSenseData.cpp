@@ -1,7 +1,6 @@
-/****************************************************************************
- *
+/*
  * ViSP, open source Visual Servoing Platform software.
- * Copyright (C) 2005 - 2023 by Inria. All rights reserved.
+ * Copyright (C) 2005 - 2024 by Inria. All rights reserved.
  *
  * This software is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,8 +26,7 @@
  *
  * This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
  * WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
- *
- *****************************************************************************/
+ */
 
  /*!
    \example saveRealSenseData.cpp
@@ -40,7 +38,8 @@
 
 #include <visp3/core/vpConfig.h>
 #if (defined(VISP_HAVE_REALSENSE) || defined(VISP_HAVE_REALSENSE2)) && defined(VISP_HAVE_THREADS) \
-  && (defined(VISP_HAVE_X11) || defined(VISP_HAVE_GDI)) && defined(VISP_HAVE_PUGIXML)
+  && (defined(VISP_HAVE_X11) || defined(VISP_HAVE_GDI)) && defined(VISP_HAVE_PUGIXML) \
+  && ((__cplusplus >= 201402L) || (defined(_MSVC_LANG) && (_MSVC_LANG >= 201402L)))
 
 #include <condition_variable>
 #include <fstream>
@@ -253,6 +252,8 @@ bool getOptions(int argc, const char *argv[], bool &save, std::string &pattern, 
 
   return true;
 }
+
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
 
 // Code adapted from: https://stackoverflow.com/a/37146523
 class vpFrameQueue
@@ -575,7 +576,7 @@ public:
             }
             else if (m_save_pcl_npz_format) {
 #ifdef VISP_HAVE_MINIZ
-// Write Npz headers
+              // Write Npz headers
               std::vector<char> vec_filename(filename_point_cloud.begin(), filename_point_cloud.end());
               // Null-terminated character is handled at reading
               // For null-terminated character handling, see:
@@ -661,6 +662,8 @@ private:
 #endif
 };
 } // Namespace
+
+#endif // DOXYGEN_SHOULD_SKIP_THIS
 
 int main(int argc, const char *argv[])
 {
@@ -935,10 +938,10 @@ int main(int argc, const char *argv[])
 #else
       if (save_pointcloud) {
         ptr_pointCloud = std::make_unique<std::vector<vpColVector>>(pointCloud);
-    }
+      }
       save_queue.push(ptr_colorImg, ptr_depthImg, ptr_pointCloud, ptr_infraredImg);
 #endif
-  }
+    }
 
     double delta_time = vpTime::measureTimeMs() - start;
     vec_delta_time.push_back(delta_time);
@@ -982,10 +985,10 @@ int main(int argc, const char *argv[])
 #else
             if (save_pointcloud) {
               ptr_pointCloud = std::make_unique<std::vector<vpColVector>>(pointCloud);
-          }
+            }
             save_queue.push(ptr_colorImg, ptr_depthImg, ptr_pointCloud, ptr_infraredImg);
 #endif
-        }
+          }
           break;
 
         case vpMouseButton::button2:
@@ -995,9 +998,9 @@ int main(int argc, const char *argv[])
           quit = true;
           save_queue.cancel();
           break;
+        }
       }
     }
-}
   }
 
   double mean_vec_delta_time = vpMath::getMean(vec_delta_time);
@@ -1019,6 +1022,8 @@ int main()
 
 #if !defined(VISP_HAVE_PUGIXML)
   std::cout << "pugixml built-in 3rdparty is requested." << std::endl;
+#elif !((__cplusplus >= 201402L) || (defined(_MSVC_LANG) && (_MSVC_LANG >= 201402L)))
+  std::cout << "At least c++14 standard is requested." << std::endl;
 #endif
   return EXIT_SUCCESS;
 }

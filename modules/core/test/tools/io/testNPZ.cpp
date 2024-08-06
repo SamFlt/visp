@@ -104,7 +104,7 @@ TEST_CASE("Test visp::cnpy::npy_load/npz_save", "[visp::cnpy I/O]")
     {
       std::vector<int> save_vec;
       save_vec.reserve(height*width*channels);
-      for (size_t i = 0; i < height*width*channels; i++) {
+      for (int i = 0; i < static_cast<int>(height*width*channels); ++i) {
         save_vec.push_back(i);
       }
 
@@ -120,7 +120,7 @@ TEST_CASE("Test visp::cnpy::npy_load/npz_save", "[visp::cnpy I/O]")
       std::vector<int> read_vec = arr_vec_data.as_vec<int>();
 
       REQUIRE(save_vec_copy.size() == read_vec.size());
-      for (size_t i = 0; i < read_vec.size(); i++) {
+      for (size_t i = 0; i < read_vec.size(); ++i) {
         CHECK(save_vec_copy[i] == read_vec[i]);
       }
     }
@@ -155,7 +155,8 @@ TEST_CASE("Test visp::cnpy::npy_load/npz_save", "[visp::cnpy I/O]")
 
       visp::cnpy::NpyArray arr_vec_data = npz_data[identifier];
       const bool copy_data = false;
-      vpImage<vpRGBa> I_read(arr_vec_data.data<vpRGBa>(), arr_vec_data.shape[0], arr_vec_data.shape[1], copy_data);
+      vpImage<vpRGBa> I_read(arr_vec_data.data<vpRGBa>(), static_cast<unsigned int>(arr_vec_data.shape[0]),
+                             static_cast<unsigned int>(arr_vec_data.shape[1]), copy_data);
 
       CHECK(I_save_copy.getSize() == I_read.getSize());
       CHECK(I_save_copy == I_read);
@@ -255,7 +256,7 @@ TEST_CASE("Test visp::cnpy::npy_load/npz_save", "[visp::cnpy I/O]")
     {
       std::vector<double> vec_cMo_save;
       for (size_t i = 0; i < 5; i++) {
-        vpHomogeneousMatrix cMo_save(vpTranslationVector(1+10*i, 2+20*i, 3+30*i), vpThetaUVector(0.1+i, 0.2+i, 0.3+i));
+        vpHomogeneousMatrix cMo_save(vpTranslationVector(1. +10.*i, 2. +20.*i, 3. +30.*i), vpThetaUVector(0.1+i, 0.2+i, 0.3+i));
         vec_cMo_save_copy.push_back(cMo_save);
         vec_cMo_save.insert(vec_cMo_save.end(), cMo_save.data, cMo_save.data+cMo_save.size());
         // std::cout << "cMo_save:\n" << cMo_save << std::endl;
