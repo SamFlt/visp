@@ -38,6 +38,7 @@
 #include <antialiasAttrib.h>
 #include "boundingSphere.h"
 #include "boundingBox.h"
+#include <graphicsPipeSelection.h>
 
 BEGIN_VISP_NAMESPACE
 const vpHomogeneousMatrix vpPanda3DBaseRenderer::VISP_T_PANDA({
@@ -50,35 +51,59 @@ const vpHomogeneousMatrix vpPanda3DBaseRenderer::PANDA_T_VISP(vpPanda3DBaseRende
 
 void vpPanda3DBaseRenderer::initFramework()
 {
-  if (m_framework.use_count() > 0) {
+  if (m_engine != nullptr) {
     throw vpException(vpException::notImplementedError,
     "Panda3D renderer: Reinitializing is not supported!");
   }
-  m_framework = std::shared_ptr<PandaFramework>(new PandaFramework());
-  m_framework->open_framework();
+
+  m_engine = GraphicsEngine::get_global_ptr();
+  if (m_engine == nullptr) {
+    throw vpException(vpException::badValue, "Engine is null");
+  }
+  GraphicsPipeSelection::get_global_ptr()->print_pipe_types();
+  GraphicsPipe *pipe = GraphicsPipeSelection::get_global_ptr()->make_default_pipe();
+  if (pipe == nullptr) {
+    throw vpException(vpException::badValue, "Pipe is null");
+  }
+  std::cout << (size_t)(pipe) << std::endl;
+  std::cout << "Before gsg creation" << std::endl;
+  // PandaFramework p;
+  // p.open_framework();
+  // p.open_window();
+  // GraphicsStateGuardian *gsg = pipe->make_callback_gsg(m_engine);
+  std::cout << "After gsg creation" << std::endl;
   WindowProperties winProps;
   winProps.set_size(LVecBase2i(m_renderParameters.getImageWidth(), m_renderParameters.getImageHeight()));
   int flags = GraphicsPipe::BF_refuse_window;
-  m_window = m_framework->open_window(winProps, flags);
+  FrameBufferProperties fbprops;
+  fbprops.set_rgb_color(true);
+  fbprops.set_rgba_bits(8, 8, 8, 0);
+  fbprops.set_back_buffers(1);
+  m_window = m_engine->make_output(pipe, "window0", 100, fbprops, winProps, GraphicsPipe::BF_require_window);
+
+  // m_window = m_engine->make_buffer((GraphicsStateGuardian *)(nullptr), m_name + "baseWindow", 0, 800, 600);
   // try and reopen with visible window
+  std::cout << "After make_output" << std::endl;
   if (m_window == nullptr) {
+    std::cout << "Failed once" << std::endl;
     winProps.set_minimized(true);
-    m_window = m_framework->open_window(winProps, 0);
+
+    m_window = m_engine->make_output(pipe, m_name + "baseWindow", 0, fbprops, winProps, 0);
   }
   if (m_window == nullptr) {
     throw vpException(vpException::notInitialized,
     "Panda3D renderer: Could not create the requested window when performing initialization.");
   }
-  m_window->set_background_type(WindowFramework::BackgroundType::BT_black);
+  //m_window->set_background_type(WindowFramework::BackgroundType::BT_black);
   setupScene();
   setupCamera();
   setupRenderTarget();
   //m_window->get_display_region_3d()->set_camera(m_cameraPath);
 }
 
-void vpPanda3DBaseRenderer::initFromParent(std::shared_ptr<PandaFramework> framework, PointerTo<WindowFramework> window)
+void vpPanda3DBaseRenderer::initFromParent(PointerTo<GraphicsEngine> engine, PointerTo<GraphicsOutput> window)
 {
-  m_framework = framework;
+  m_engine = engine;
   m_window = window;
   setupScene();
   setupCamera();
@@ -87,19 +112,19 @@ void vpPanda3DBaseRenderer::initFromParent(std::shared_ptr<PandaFramework> frame
 
 void vpPanda3DBaseRenderer::initFromParent(const vpPanda3DBaseRenderer &renderer)
 {
-  initFromParent(renderer.m_framework, renderer.m_window);
+  initFromParent(renderer.m_engine, renderer.m_window);
 }
 
 void vpPanda3DBaseRenderer::setupScene()
 {
-  m_renderRoot = m_window->get_render().attach_new_node(m_name);
+  //m_renderRoot = m_window->get_render().attach_new_node(m_name);
   //m_renderRoot.set_antialias(AntialiasAttrib::M_none);
 }
 
 void vpPanda3DBaseRenderer::setupCamera()
 {
-  m_cameraPath = m_window->make_camera();
-  m_camera = (Camera *)m_cameraPath.node();
+  m_camera = new Camera("camera");
+  m_cameraPath = m_renderRoot.attach_new_node(m_camera);
   // m_camera = m_window->get_camera(0);
   m_cameraPath = m_renderRoot.attach_new_node(m_camera);
   m_renderParameters.setupPandaCamera(m_camera);
@@ -109,7 +134,7 @@ void vpPanda3DBaseRenderer::setupCamera()
 void vpPanda3DBaseRenderer::renderFrame()
 {
   beforeFrameRendered();
-  m_framework->get_graphics_engine()->render_frame();
+  m_engine->render_frame();
   afterFrameRendered();
 }
 
@@ -271,9 +296,24 @@ void vpPanda3DBaseRenderer::enableSharedDepthBuffer(vpPanda3DBaseRenderer &sourc
   }
 }
 
+NodePath loadModelBase(NodePath parent, const std::string &modelPath)
+{
+  LoaderOptions options = PandaFramework::_loader_options;
+  options.set_flags(options.get_flags() & ~LoaderOptions::LF_search);
+  Loader loader;
+  PT(PandaNode) node = loader.load_sync(modelPath, options);;
+  if (node == nullptr) {
+    throw vpException(vpException::ioError, "Unable to load " + modelPath);
+  }
+  return parent.attach_new_node(node);
+
+}
+
 NodePath vpPanda3DBaseRenderer::loadObject(const std::string &nodeName, const std::string &modelPath)
 {
-  NodePath model = m_window->load_model(m_framework->get_models(), modelPath);
+  NodePath p;
+  NodePath model = loadModelBase(p, modelPath);
+
   for (int i = 0; i < model.get_num_children(); ++i) {
     model.get_child(i).clear_transform();
   }

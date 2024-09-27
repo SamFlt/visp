@@ -22,6 +22,9 @@
 #include <visp3/ar/vpPanda3DRendererSet.h>
 #include <visp3/ar/vpPanda3DCommonFilters.h>
 
+#include <graphicsPipeSelection.h>
+#include <loader.h>
+
 #ifdef ENABLE_VISP_NAMESPACE
 using namespace VISP_NAMESPACE_NAME;
 #endif
@@ -130,6 +133,39 @@ int main(int argc, const char **argv)
                          vpParseArgv::ARGV_NO_ABBREV |
                          vpParseArgv::ARGV_NO_DEFAULTS)) {
     return (false);
+  }
+
+
+  GraphicsEngine *engine = GraphicsEngine::get_global_ptr();
+  GraphicsPipe *pipe = GraphicsPipeSelection::get_global_ptr()->make_default_pipe();
+
+
+  FrameBufferProperties fb_prop = FrameBufferProperties();
+  fb_prop.set_rgb_color(true);
+  fb_prop.set_color_bits(3 * 8);
+  fb_prop.set_back_buffers(1);
+  WindowProperties winprops;
+  winprops.set_size(LVecBase2i(800, 600));
+  GraphicsOutput *win = engine->make_output(pipe, "window", 0, fb_prop, winprops, GraphicsPipe::BF_require_window);
+
+  win->set_clear_color_active(true);
+  win->set_clear_color(LColor(0.5, 0.5, 0.5, 1));
+
+  NodePath render("render");
+  Camera *cam = new Camera("cam");
+  cam->set_lens(new PerspectiveLens());
+  NodePath camPath = render.attach_new_node(cam);
+
+  Loader *loader = Loader::get_global_ptr();
+  NodePath model = render.attach_new_node(loader->load_sync("panda.egg"));
+  model.set_pos(0, 100, 0);
+
+  DisplayRegion *dr = win->make_display_region();
+  dr->set_camera(camPath);
+
+  while (win->is_valid()) {
+    engine->render_frame();
+
   }
 
   if (PStatClient::is_connected()) {

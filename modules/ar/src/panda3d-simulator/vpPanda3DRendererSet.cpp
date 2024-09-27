@@ -45,35 +45,17 @@ vpPanda3DRendererSet::vpPanda3DRendererSet(const vpPanda3DRenderParameters &rend
 
 void vpPanda3DRendererSet::initFramework()
 {
-  if (m_framework.use_count() > 0) {
-    throw vpException(vpException::notImplementedError, "Panda3D renderer: Reinitializing is not supported!");
-  }
-  m_framework = std::shared_ptr<PandaFramework>(new PandaFramework());
-
-  m_framework->open_framework();
-  WindowProperties winProps;
-  winProps.set_size(LVecBase2i(m_renderParameters.getImageWidth(), m_renderParameters.getImageHeight()));
-  int flags = GraphicsPipe::BF_refuse_window;
-  m_window = m_framework->open_window(winProps, flags);
-  if (m_window == nullptr) {
-    winProps.set_minimized(true);
-    m_window = m_framework->open_window(winProps, 0);
-  }
-  if (m_window == nullptr) {
-    throw vpException(vpException::fatalError, "Could not open Panda3D window (hidden or visible)");
-  }
-
-  m_window->set_background_type(WindowFramework::BackgroundType::BT_black);
+  vpPanda3DBaseRenderer::initFramework();
   for (std::shared_ptr<vpPanda3DBaseRenderer> &renderer: m_subRenderers) {
-    renderer->initFromParent(m_framework, m_window);
+    renderer->initFromParent(m_engine, m_window);
   }
 }
 
-void vpPanda3DRendererSet::initFromParent(std::shared_ptr<PandaFramework> framework, PointerTo<WindowFramework> window)
+void vpPanda3DRendererSet::initFromParent(PointerTo<GraphicsEngine> engine, PointerTo<GraphicsOutput> window)
 {
-  vpPanda3DBaseRenderer::initFromParent(framework, window);
+  vpPanda3DBaseRenderer::initFromParent(engine, window);
   for (std::shared_ptr<vpPanda3DBaseRenderer> &renderer: m_subRenderers) {
-    renderer->initFromParent(m_framework, m_window);
+    renderer->initFromParent(m_engine, m_window);
   }
 }
 
@@ -179,8 +161,8 @@ void vpPanda3DRendererSet::addSubRenderer(std::shared_ptr<vpPanda3DBaseRenderer>
   m_subRenderers.insert(it, renderer);
 
   renderer->setRenderParameters(m_renderParameters);
-  if (m_framework != nullptr) {
-    renderer->initFromParent(m_framework, m_window);
+  if (m_engine != nullptr) {
+    renderer->initFromParent(m_engine, m_window);
     renderer->setCameraPose(getCameraPose());
   }
 }

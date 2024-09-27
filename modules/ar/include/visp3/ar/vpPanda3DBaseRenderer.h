@@ -58,7 +58,7 @@ class VISP_EXPORT vpPanda3DBaseRenderer
 {
 public:
   vpPanda3DBaseRenderer(const std::string &rendererName)
-    : m_name(rendererName), m_renderOrder(-100), m_framework(nullptr), m_window(nullptr), m_camera(nullptr)
+    : m_name(rendererName), m_renderOrder(-100), m_engine(nullptr), m_window(nullptr), m_camera(nullptr)
   {
     setVerticalSyncEnabled(false);
   }
@@ -71,7 +71,7 @@ public:
    * Will also perform the renderer setup (scene, camera and render targets)
    */
   virtual void initFramework();
-  virtual void initFromParent(std::shared_ptr<PandaFramework> framework, PointerTo<WindowFramework> window);
+  virtual void initFromParent(PointerTo<GraphicsEngine> engine, PointerTo<GraphicsOutput> window);
   virtual void initFromParent(const vpPanda3DBaseRenderer &renderer);
 
   virtual void beforeFrameRendered() { }
@@ -80,7 +80,7 @@ public:
   {
     GraphicsOutput *mainBuffer = getMainOutputBuffer();
     if (mainBuffer != nullptr) {
-      m_framework->get_graphics_engine()->extract_texture_data(mainBuffer->get_texture(), mainBuffer->get_gsg());
+      m_engine->extract_texture_data(mainBuffer->get_texture(), mainBuffer->get_gsg());
     }
   }
 
@@ -270,8 +270,8 @@ protected:
 protected:
   std::string m_name; //! name of the renderer
   int m_renderOrder; //! Rendering priority for this renderer and its buffers. A lower value will be rendered first. Should be used when calling make_output in setupRenderTarget()
-  std::shared_ptr<PandaFramework> m_framework; //! Pointer to the active panda framework
-  PointerTo<WindowFramework> m_window; //! Pointer to owning window, which can create buffers etc. It is not necessarily visible.
+  PointerTo<GraphicsEngine> m_engine;
+  PointerTo<GraphicsOutput> m_window; //! Pointer to owning window, which can be used create buffers etc. It is not necessarily visible.
   vpPanda3DRenderParameters m_renderParameters; //! Rendering parameters
   NodePath m_renderRoot; //! Node containing all the objects and the camera for this renderer
   PointerTo<Camera> m_camera;

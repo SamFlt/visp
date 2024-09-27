@@ -108,7 +108,7 @@ vpPanda3DGeometryRenderer::vpPanda3DGeometryRenderer(vpRenderType renderType) : 
 
 void vpPanda3DGeometryRenderer::setupScene()
 {
-  m_renderRoot = m_window->get_render().attach_new_node(m_name);
+  //m_renderRoot = m_window->get_render().attach_new_node(m_name);
   PT(Shader) shader;
   if (m_renderType == OBJECT_NORMALS) {
     shader = Shader::make(Shader::ShaderLanguage::SL_GLSL,
@@ -139,7 +139,7 @@ void vpPanda3DGeometryRenderer::setupRenderTarget()
   win_prop.set_size(m_renderParameters.getImageWidth(), m_renderParameters.getImageHeight());
   // Don't open a window - force it to be an offscreen buffer.
   int flags = GraphicsPipe::BF_refuse_window  | GraphicsPipe::BF_resizeable | GraphicsPipe::BF_refuse_parasite;
-  GraphicsOutput *windowOutput = m_window->get_graphics_output();
+  GraphicsOutput *windowOutput = m_window;
   GraphicsEngine *engine = windowOutput->get_engine();
   GraphicsPipe *pipe = windowOutput->get_pipe();
 

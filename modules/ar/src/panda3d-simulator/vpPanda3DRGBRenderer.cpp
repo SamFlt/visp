@@ -336,7 +336,7 @@ void vpPanda3DRGBRenderer::setupRenderTarget()
 
   // Don't open a window - force it to be an offscreen buffer.
   int flags = GraphicsPipe::BF_refuse_window | GraphicsPipe::BF_resizeable;
-  GraphicsOutput *windowOutput = m_window->get_graphics_output();
+  GraphicsOutput *windowOutput = m_window;
   GraphicsEngine *engine = windowOutput->get_engine();
   GraphicsStateGuardian *gsg = windowOutput->get_gsg();
   GraphicsPipe *pipe = windowOutput->get_pipe();

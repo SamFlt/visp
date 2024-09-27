@@ -72,7 +72,7 @@ void vpPanda3DPostProcessFilter::setupScene()
 
 void vpPanda3DPostProcessFilter::setupCamera()
 {
-  m_cameraPath = m_window->make_camera();
+  m_camera = new Camera("camera");
   m_camera = (Camera *)m_cameraPath.node();
   PT(OrthographicLens) lens = new OrthographicLens();
   lens->set_film_size(2, 2);
@@ -95,7 +95,7 @@ void vpPanda3DPostProcessFilter::setupRenderTarget()
 
   // Don't open a window - force it to be an offscreen buffer.
   int flags = GraphicsPipe::BF_refuse_window | GraphicsPipe::BF_resizeable;
-  GraphicsOutput *windowOutput = m_window->get_graphics_output();
+  GraphicsOutput *windowOutput = m_window;
   GraphicsEngine *engine = windowOutput->get_engine();
   GraphicsStateGuardian *gsg = windowOutput->get_gsg();
   GraphicsPipe *pipe = windowOutput->get_pipe();
