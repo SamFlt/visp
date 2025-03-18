@@ -585,22 +585,14 @@ void vpRBTracker::displayMask(vpImage<unsigned char> &Imask) const
   }
 }
 
-void vpRBTracker::display(const vpImage<unsigned char> &I, const vpImage<vpRGBa> &IRGB, const vpImage<unsigned char> &depth, const bool &displaySilhouette)
+void vpRBTracker::display(const vpImage<unsigned char> &I, const vpImage<vpRGBa> &IRGB, const vpImage<unsigned char> &depth, const bool &hasToDisplaySilhouette)
 {
   if (m_currentFrame.renders.normals.getSize() == 0) {
     return;
   }
 
-  if (displaySilhouette) {
-    const vpImage<unsigned char> &Isilhouette = m_currentFrame.renders.isSilhouette;
-    const vpRect bb = m_renderer.getBoundingBox();
-    for (unsigned int r = std::max(bb.getTop(), 0.); (r < bb.getBottom()) &&(r < IRGB.getRows()); ++r) {
-      for (unsigned int c = std::max(bb.getLeft(), 0.); (c < bb.getRight()) && (c < IRGB.getCols()); ++c) {
-        if (Isilhouette[r][c] != 0) {
-          vpDisplay::displayPoint(IRGB, vpImagePoint(r, c), vpColor::green);
-        }
-      }
-    }
+  if (hasToDisplaySilhouette) {
+    displaySilhouette(IRGB);
   }
 
   for (std::shared_ptr<vpRBFeatureTracker> &tracker : m_trackers) {
@@ -710,6 +702,28 @@ void vpRBTracker::initClick(const vpImage<unsigned char> &I, const std::string &
   initializer.setCameraParameters(m_cam);
   initializer.initClick(I, initFile, displayHelp);
   m_cMo = initializer.getPose();
+}
+
+void vpRBTracker::initClick(const vpImage<unsigned char> &I, const vpImage<vpRGBa> &IRGB, const vpImage<float> &depth, const std::string &initFile, bool displayHelp)
+{
+  bool initNotValid = true;
+  while (initNotValid) {
+    initClick(I, initFile, displayHelp);
+    setPose(m_cMo);
+    track(I, IRGB, depth);
+    vpDisplay::display(I);
+    displaySilhouette(I);
+    vpDisplay::displayText(I, vpImagePoint(20, 20), "Left click to validate, right click to try again", vpColor::red);
+    vpDisplay::flush(I);
+    vpMouseButton::vpMouseButtonType button = vpMouseButton::button1;
+    vpImagePoint ip;
+    while (!vpDisplay::getClick(I, ip, button)) {
+    }
+
+    if (button == vpMouseButton::button1) {
+      initNotValid = false;
+    }
+  }
 }
 #endif
 

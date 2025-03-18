@@ -263,6 +263,7 @@ void vpRBInitializationHelper::initClick(const vpImage<T> &I, const std::string 
         }
       }
       std::cout << "POSE after optim: " << m_cMo << std::endl;
+      vpDisplay::displayFrame(I, m_cMo, m_cam, 0.05, vpColor::red);
 
       vpDisplay::displayText(I, 15, 10, "left click to validate, right click to re initialize object", vpColor::red);
 
@@ -282,7 +283,6 @@ void vpRBInitializationHelper::initClick(const vpImage<T> &I, const std::string 
       }
 
     }
-    vpDisplay::displayFrame(I, m_cMo, m_cam, 0.05, vpColor::red);
 
     // save the pose into file
     if (poseSavingFilename.empty())

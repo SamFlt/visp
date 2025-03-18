@@ -42,6 +42,7 @@
 #include <visp3/rbt/vpRBFeatureTracker.h>
 #include <visp3/rbt/vpRBSilhouettePointsExtractionSettings.h>
 #include <visp3/rbt/vpPanda3DDepthFilters.h>
+#include <visp3/ar/vpPanda3DFrameworkManager.h>
 #include <visp3/rbt/vpObjectCentricRenderer.h>
 #include <visp3/rbt/vpRBTrackerLogger.h>
 #include <visp3/rbt/vpRBADDSMetric.h>
@@ -70,7 +71,10 @@ public:
 
   vpRBTracker();
 
-  ~vpRBTracker() = default;
+  ~vpRBTracker()
+  {
+    vpPanda3DFrameworkManager::getInstance().exit();
+  }
 
   /**
    * \name Information retrieval
@@ -218,6 +222,7 @@ public:
 
 #ifdef VISP_HAVE_MODULE_GUI
   void initClick(const vpImage<unsigned char> &I, const std::string &initFile, bool displayHelp);
+  void initClick(const vpImage<unsigned char> &I, const vpImage<vpRGBa> &IRGB, const vpImage<float> &depth, const std::string &initFile, bool displayHelp);
 #endif
 
 protected:
@@ -229,6 +234,20 @@ protected:
     const vpImage<vpRGBf> &Inorm, const vpImage<float> &Idepth,
     const vpImage<vpRGBf> &Ior, const vpImage<unsigned char> &Ivalid,
     const vpCameraParameters &cam, const vpHomogeneousMatrix &cTcp);
+
+  template <typename T>
+  void displaySilhouette(const vpImage<T> &I)
+  {
+    const vpImage<unsigned char> &Isilhouette = m_currentFrame.renders.isSilhouette;
+    const vpRect bb = m_renderer.getBoundingBox();
+    for (unsigned int r = std::max(bb.getTop(), 0.); (r < bb.getBottom()) &&(r < I.getRows()); ++r) {
+      for (unsigned int c = std::max(bb.getLeft(), 0.); (c < bb.getRight()) && (c < I.getCols()); ++c) {
+        if (Isilhouette[r][c] != 0) {
+          vpDisplay::displayPoint(I, vpImagePoint(r, c), vpColor::green);
+        }
+      }
+    }
+  }
 
   template<typename T>
   void checkDimensionsOrThrow(const vpImage<T> &I, const std::string &imgType) const
