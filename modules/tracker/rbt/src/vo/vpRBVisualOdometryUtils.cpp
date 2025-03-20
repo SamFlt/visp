@@ -1,3 +1,33 @@
+/*
+ * ViSP, open source Visual Servoing Platform software.
+ * Copyright (C) 2005 - 2025 by Inria. All rights reserved.
+ *
+ * This software is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ * See the file LICENSE.txt at the root directory of this source
+ * distribution for additional information about the GNU GPL.
+ *
+ * For using ViSP with software that can not be combined with the GNU
+ * GPL, please contact Inria about acquiring a ViSP Professional
+ * Edition License.
+ *
+ * See https://visp.inria.fr for more information.
+ *
+ * This software was developed at:
+ * Inria Rennes - Bretagne Atlantique
+ * Campus Universitaire de Beaulieu
+ * 35042 Rennes Cedex
+ * France
+ *
+ * If you have questions regarding the use of this file, please contact
+ * Inria at visp@inria.fr
+ *
+ * This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
+ * WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+ */
+
 #include <visp3/rbt/vpRBVisualOdometryUtils.h>
 
 #include <visp3/core/vpMatrix.h>
@@ -9,12 +39,13 @@
 #include <visp3/core/vpExponentialMap.h>
 #include <visp3/core/vpHomogeneousMatrix.h>
 
-
+BEGIN_VISP_NAMESPACE
 
 std::pair<std::vector<unsigned int>, std::vector<unsigned int>>
-vpRBVisualOdometryUtils::computeIndicesObjectAndEnvironment(
-    const vpMatrix &keypoints, const vpRBFeatureTrackerInput &frame,
-    double minMaskConfidence, double minEdgeDistObject, double minEdgeDistEnv)
+vpRBVisualOdometryUtils::computeIndicesObjectAndEnvironment(const vpMatrix &keypoints,
+                                                            const vpRBFeatureTrackerInput &frame,
+                                                            double minMaskConfidence, double minEdgeDistObject,
+                                                            double minEdgeDistEnv)
 {
   std::vector<unsigned int> objIndices, envIndices;
   const vpImage<float> &renderDepth = frame.renders.depth;
@@ -22,10 +53,19 @@ vpRBVisualOdometryUtils::computeIndicesObjectAndEnvironment(
   const bool useMask = frame.hasMask() && minMaskConfidence > 0.0;
   const double thresholdObject = vpMath::sqr(minEdgeDistObject), thresholdEnv = vpMath::sqr(minEdgeDistEnv);
 
+  std::vector<std::pair<double, double>> actualSilhouettePoints;
+  actualSilhouettePoints.reserve(frame.silhouettePoints.size());
+  for (const vpRBSilhouettePoint &p: frame.silhouettePoints) {
+    if (p.isSilhouette) {
+      actualSilhouettePoints.push_back(std::make_pair(
+        static_cast<double>(p.i), static_cast<double>(p.j)
+      ));
+    }
+  }
 
-  const auto testDistanceEdge = [](double u, double v, const std::vector<vpRBSilhouettePoint> &silhouettePoints, double threshold) -> bool {
-    for (const vpRBSilhouettePoint &p: silhouettePoints) {
-      double dist2 = vpMath::sqr(static_cast<double>(p.i) - v) + vpMath::sqr(static_cast<double>(p.j) - u);
+  const auto testDistanceEdge = [&actualSilhouettePoints](double u, double v, double threshold) -> bool {
+    for (const std::pair<double, double> &p: actualSilhouettePoints) {
+      double dist2 = vpMath::sqr(p.first - v) + vpMath::sqr(p.second - u);
       if (dist2 < threshold) {
         return false;
       }
@@ -43,14 +83,14 @@ vpRBVisualOdometryUtils::computeIndicesObjectAndEnvironment(
 
     if (Z > 0.0) { // Potential object candidate
       if (!useMask || frame.mask[vi][ui] > minMaskConfidence) {
-        bool notTooCloseToEdge = testDistanceEdge(u, v, frame.silhouettePoints, thresholdObject);
+        bool notTooCloseToEdge = testDistanceEdge(u, v, thresholdObject);
         if (notTooCloseToEdge) {
           objIndices.push_back(i);
         }
       }
     }
     else { // Env candidate
-      bool notTooCloseToEdge = testDistanceEdge(u, v, frame.silhouettePoints, thresholdEnv);
+      bool notTooCloseToEdge = testDistanceEdge(u, v, thresholdEnv);
       if (notTooCloseToEdge) {
         envIndices.push_back(i);
       }
@@ -59,7 +99,9 @@ vpRBVisualOdometryUtils::computeIndicesObjectAndEnvironment(
   return std::make_pair(objIndices, envIndices);
 }
 
-void vpRBVisualOdometryUtils::levenbergMarquardtKeypoints2D(const vpMatrix &points3d, const vpMatrix &observations, const vpLevenbergMarquardtParameters &parameters, vpHomogeneousMatrix &cTw)
+void vpRBVisualOdometryUtils::levenbergMarquardtKeypoints2D(const vpMatrix &points3d, const vpMatrix &observations,
+                                                            const vpLevenbergMarquardtParameters &parameters,
+                                                            vpHomogeneousMatrix &cTw)
 {
   vpMatrix L(points3d.getRows() * 2, 6);
   vpMatrix Lt(6, points3d.getRows());
@@ -129,3 +171,5 @@ void vpRBVisualOdometryUtils::levenbergMarquardtKeypoints2D(const vpMatrix &poin
     errorNormPrev = errorNormCurr;
   }
 }
+
+END_VISP_NAMESPACE

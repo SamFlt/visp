@@ -638,10 +638,10 @@ VP_OPTION(USE_DIRECTSHOW  DIRECTSHOW  ""    "Include dshow support"            "
 VP_OPTION(USE_OPENMP      OpenMP      ""    "Include openmp support"           "" ON)
 VP_OPTION(USE_EIGEN3      Eigen3      QUIET "Include eigen3 support"           "" ON IF NOT WINRT AND NOT IOS)
 VP_OPTION(USE_COIN3D      "Coin3D;MyCoin3D" "" "Include coin3d support"        "" ON IF OPENGL_FOUND AND NOT WINRT AND NOT IOS)
-VP_OPTION(USE_PANDA3D     "MyPanda3D" ""    "Include Panda3D support"        "" ON IF NOT IOS)
+VP_OPTION(USE_PANDA3D     "MyPanda3D" ""    "Include Panda3D support"          "" ON IF NOT IOS)
 VP_OPTION(USE_YARP        YARP        QUIET "Include yarp support"             "YARP_DIR" ON IF NOT WINRT AND NOT IOS)
-VP_OPTION(USE_OGRE        OGRE        QUIET "Include Ogre support"             "OGRE_DIR" ON IF NOT WINRT AND NOT IOS)
-VP_OPTION(USE_OIS         OIS         QUIET "Include Ogre/ois support"         "OIS_DIR"  ON IF USE_OGRE AND NOT WINRT AND NOT IOS)
+VP_OPTION(USE_OGRE        OGRE        QUIET "Include Ogre3D support"           "OGRE_DIR" ON IF NOT WINRT AND NOT IOS)
+VP_OPTION(USE_OIS         OIS         QUIET "Include Ogre3D/ois support"       "OIS_DIR"  ON IF USE_OGRE AND NOT WINRT AND NOT IOS)
 VP_OPTION(USE_LIBFREENECT LIBFREENECT ""    "Include libfreenect support"      "" ON IF NOT WINRT AND NOT IOS)
 VP_OPTION(USE_LIBUSB_1    LIBUSB_1    ""    "Include libusb-1 support"         "" ON IF NOT WINRT AND NOT IOS)
 VP_OPTION(USE_REALSENSE   RealSense   ""    "Include RealSense SDK support"    "" ON IF NOT WINRT AND NOT IOS)
@@ -799,6 +799,11 @@ if(VISP_CXX_STANDARD LESS VISP_CXX_STANDARD_11)
     unset(USE_PANDA3D)
     set(USE_PANDA3D OFF CACHE BOOL "Include Panda3D support" FORCE)
   endif()
+  if(USE_OGRE)
+    message(WARNING "Ogre3D was detected but needs at least c++11 standard compiler flag while you have set c++${USE_CXX_STANDARD}. Thus we disable Ogre3D usage turning USE_OGRE=OFF.")
+    unset(USE_OGRE)
+    set(USE_OGRE OFF CACHE BOOL "Include Ogre3D support" FORCE)
+  endif()
 endif()
 
 if(UNIX AND Threads_FOUND)
@@ -939,11 +944,12 @@ if(DOXYGEN_FOUND)
   set(DOXYGEN_GENERATE_TEST_LIST "YES")
   set(DOXYGEN_QUIET "NO")
   set(DOXYGEN_INPUTS
-    "${VISP_SOURCE_DIR}/modules"
-    "${VISP_SOURCE_DIR}/example"
-    "${VISP_SOURCE_DIR}/tutorial"
+    "${VISP_SOURCE_DIR}/apps"
     "${VISP_SOURCE_DIR}/demo"
     "${VISP_SOURCE_DIR}/doc"
+    "${VISP_SOURCE_DIR}/example"
+    "${VISP_SOURCE_DIR}/modules"
+    "${VISP_SOURCE_DIR}/tutorial"
     "${VISP_BINARY_DIR}/doc"
     "${VISP_CONTRIB_MODULES_PATH}"
   )

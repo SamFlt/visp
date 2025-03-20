@@ -215,7 +215,7 @@ public:
    * @{
    */
   void displayMask(vpImage<unsigned char> &Imask) const;
-  void display(const vpImage<unsigned char> &I, const vpImage<vpRGBa> &IRGB, const vpImage<unsigned char> &depth, const bool &displaySilhouette = false);
+  void display(const vpImage<unsigned char> &I, const vpImage<vpRGBa> &IRGB, const vpImage<unsigned char> &depth);
   /**
    * @}
    */
@@ -238,12 +238,14 @@ protected:
   template <typename T>
   void displaySilhouette(const vpImage<T> &I)
   {
-    const vpImage<unsigned char> &Isilhouette = m_currentFrame.renders.isSilhouette;
-    const vpRect bb = m_renderer.getBoundingBox();
-    for (unsigned int r = std::max(bb.getTop(), 0.); (r < bb.getBottom()) &&(r < I.getRows()); ++r) {
-      for (unsigned int c = std::max(bb.getLeft(), 0.); (c < bb.getRight()) && (c < I.getCols()); ++c) {
-        if (Isilhouette[r][c] != 0) {
-          vpDisplay::displayPoint(I, vpImagePoint(r, c), vpColor::green);
+    if (m_currentFrame.silhouettePoints.size() > 0) {
+      const vpImage<unsigned char> &Isilhouette = m_currentFrame.renders.isSilhouette;
+      const vpRect bb = m_renderer.getBoundingBox();
+      for (unsigned int r = std::max(bb.getTop(), 0.); (r < bb.getBottom()) &&(r < I.getRows()); ++r) {
+        for (unsigned int c = std::max(bb.getLeft(), 0.); (c < bb.getRight()) && (c < I.getCols()); ++c) {
+          if (Isilhouette[r][c] != 0) {
+            vpDisplay::displayPoint(I, vpImagePoint(r, c), vpColor::green);
+          }
         }
       }
     }
@@ -295,10 +297,11 @@ protected:
   vpRBADDSMetric m_convergenceMetric;
   double m_convergedMetricThreshold;
 
+  bool m_displaySilhouette; //! Whether a call to the display function should draw a silhouette outline
+
 };
 
 END_VISP_NAMESPACE
-
 
 #endif
 #endif
