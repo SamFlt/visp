@@ -76,6 +76,15 @@ private:
   double m_coverage; // Step in pixels
 };
 
+class VISP_EXPORT vpRBTargetImageSampler : public vpRBImageSampler
+{
+public:
+  vpRBTargetImageSampler(unsigned int target);
+  std::pair<unsigned int, unsigned int> getSampleSteps(const vpRBFeatureTrackerInput &) VP_OVERRIDE;
+
+private:
+  unsigned int m_target; // Step in pixels
+};
 
 
 

@@ -65,6 +65,7 @@ void vpRBDenseDepthTracker::extractFeatures(const vpRBFeatureTrackerInput &frame
   const vpTranslationVector co = oMc.getTranslationVector(); // Position of the camera in object frame
   const bool useMask = m_useMask && frame.hasMask();
   std::pair<unsigned int, unsigned int> imageSteps = m_sampler->getSampleSteps(frame);
+  std::cout << "Image step = " << imageSteps.first << ", " << imageSteps.second << std::endl;
   m_depthPoints.clear();
   m_depthPoints.reserve(static_cast<size_t>(bb.getArea() / (imageSteps.first * imageSteps.second)));
 
@@ -187,7 +188,7 @@ void vpRBDenseDepthTracker::computeVVSIter(const vpRBFeatureTrackerInput &/*fram
     std::cerr << "Normals camera" << std::endl;
     std::cerr << m_depthPointSet.getNormalsCamera() << std::endl;
     throw vpException(vpException::badValue, "Invalid values in depth tracker");
-  }
+}
 #endif
 
   //m_weights = 0.0;
