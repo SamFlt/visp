@@ -48,6 +48,7 @@
 // #include <Simd/SimdLib.h>
 // #endif
 #include <visp3/rbt/vpRBFeatureTracker.h>
+#include <visp3/rbt/vpRBImageSampler.h>
 
 #include <vector>
 #include <iostream>
@@ -78,7 +79,7 @@ public:
     DT_INVALID = 4
   };
 
-  vpRBDenseDepthTracker() : vpRBFeatureTracker(), m_step(2), m_useMask(false), m_minMaskConfidence(0.f), m_displayType(vpDisplayType::DT_SIMPLE) { }
+  vpRBDenseDepthTracker() : vpRBFeatureTracker(), m_sampler(new vpRBFixedStepImageSampler(2)), m_useMask(false), m_minMaskConfidence(0.f), m_displayType(vpDisplayType::DT_SIMPLE) { }
 
   virtual ~vpRBDenseDepthTracker() = default;
 
@@ -90,13 +91,13 @@ public:
    * \name Settings
    * @{
    */
-  unsigned int getStep() const { return m_step; }
-  void setStep(unsigned int step)
+  std::shared_ptr<vpRBImageSampler> getSampler() const { return m_sampler; }
+  void setSampler(const std::shared_ptr<vpRBImageSampler> &sampler)
   {
-    if (step == 0) {
-      throw vpException(vpException::badValue, "Step should be greater than 0");
+    if (sampler == nullptr) {
+      throw vpException(vpException::badValue, "Depth image sampler cannot be nullptr");
     }
-    m_step = step;
+    m_sampler = sampler;
   }
 
   /**
@@ -257,7 +258,9 @@ public:
   virtual void loadJsonConfiguration(const nlohmann::json &j) VP_OVERRIDE
   {
     vpRBFeatureTracker::loadJsonConfiguration(j);
-    setStep(j.value("step", m_step));
+    if (j.contains("step")) {
+      setSampler(vpRBImageSampler::loadSampler(j["step"]));
+    }
     setShouldUseMask(j.value("useMask", m_useMask));
     setMinimumMaskConfidence(j.value("minMaskConfidence", m_minMaskConfidence));
     setDisplayType(j.value("displayType", m_displayType));
@@ -274,7 +277,7 @@ protected:
   std::vector<vpDepthPoint> m_depthPoints;
   vpDepthPointSet m_depthPointSet;
   vpRobust m_robust;
-  unsigned int m_step;
+  std::shared_ptr<vpRBImageSampler> m_sampler;
   bool m_useMask;
   float m_minMaskConfidence;
   vpDisplayType m_displayType;

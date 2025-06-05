@@ -64,8 +64,9 @@ void vpRBDenseDepthTracker::extractFeatures(const vpRBFeatureTrackerInput &frame
   const vpHomogeneousMatrix oMc = cMo.inverse();
   const vpTranslationVector co = oMc.getTranslationVector(); // Position of the camera in object frame
   const bool useMask = m_useMask && frame.hasMask();
+  std::pair<unsigned int, unsigned int> imageSteps = m_sampler->getSampleSteps(frame);
   m_depthPoints.clear();
-  m_depthPoints.reserve(static_cast<size_t>(bb.getArea() / (m_step * m_step * 2)));
+  m_depthPoints.reserve(static_cast<size_t>(bb.getArea() / (imageSteps.first * imageSteps.second)));
 
 #ifdef VISP_HAVE_OPENMP
 #pragma omp parallel
@@ -84,8 +85,8 @@ void vpRBDenseDepthTracker::extractFeatures(const vpRBFeatureTrackerInput &frame
 #ifdef VISP_HAVE_OPENMP
 #pragma omp for nowait
 #endif
-    for (auto i = static_cast<int>(bb.getTop()); i < static_cast<int>(bb.getBottom()); i += m_step) {
-      for (auto j = static_cast<int>(bb.getLeft()); j < static_cast<int>(bb.getRight()); j += m_step) {
+    for (auto i = static_cast<int>(bb.getTop()); i < static_cast<int>(bb.getBottom()); i += imageSteps.first) {
+      for (auto j = static_cast<int>(bb.getLeft()); j < static_cast<int>(bb.getRight()); j += imageSteps.second) {
         const double Z = renderDepth[i][j];
         const double currZ = depthMap[i][j];
 
