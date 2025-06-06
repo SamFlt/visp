@@ -474,7 +474,8 @@ void vpRBSilhouetteCCDTracker::computeLocalStatistics(const vpImage<vpRGBa> &I, 
 
     vpRBSilhouetteControlPoint &p = m_controlPoints[kk];
     int ccdh = m_ccdParameters.h;
-    if (p.icpoint.get_i() <= ccdh || p.icpoint.get_i() > (I.getHeight() - ccdh) || p.icpoint.get_j() <= ccdh || p.icpoint.get_j() > (I.getWidth() - ccdh)) {
+    double d = static_cast<int>(sqrt((ccdh * ccdh) * 2));
+    if (p.icpoint.get_i() <= d || p.icpoint.get_i() >= (I.getHeight() - d) || p.icpoint.get_j() <= d || p.icpoint.get_j() >= (I.getWidth() - d)) {
       p.setValid(false); // invalidate points that are too close to image border
     }
 
@@ -567,7 +568,6 @@ void vpRBSilhouetteCCDTracker::computeLocalStatistics(const vpImage<vpRGBa> &I, 
       normalized_param[kk][1] += vic_ptr[10 * negative_normal + 7];
     }
   }
-
 #ifdef VISP_HAVE_OPENMP
 #pragma omp parallel for
 #endif
