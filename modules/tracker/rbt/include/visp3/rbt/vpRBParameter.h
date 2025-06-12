@@ -32,10 +32,11 @@
   \file vpRBImageSampler.h
   \brief Image sampling utils
 */
-#ifndef VP_RB_IMAGE_SAMPLER_H
-#define VP_RB_IMAGE_SAMPLER_H
+#ifndef VP_RB_PARAMETER_H
+#define VP_RB_PARAMETR_H
 
 #include <visp3/core/vpConfig.h>
+
 #if defined(VISP_HAVE_NLOHMANN_JSON)
 #include VISP_NLOHMANN_JSON(json.hpp)
 #endif
@@ -44,47 +45,49 @@ class vpRBFeatureTrackerInput;
 
 BEGIN_VISP_NAMESPACE
 
-class VISP_EXPORT vpRBImageSampler
+enum vpRBParameterUnit
+{
+  PIXELS = 0,
+  METERS = 1
+};
+
+class VISP_EXPORT vpRBParameter
 {
 public:
-  virtual ~vpRBImageSampler() = default;
-  virtual std::pair<unsigned int, unsigned int> getSampleSteps(const vpRBFeatureTrackerInput &) = 0;
+  virtual ~vpRBParameter() = default;
+  virtual double getValue(const vpRBFeatureTrackerInput &) = 0;
+
+  vpRBParameterUnit getUnits() const { return m_units; }
 
 #if defined(VISP_HAVE_NLOHMANN_JSON)
-  static std::shared_ptr<vpRBImageSampler> loadSampler(const nlohmann::json &);
+  static std::shared_ptr<vpRBParameter> loadParameter(const nlohmann::json &);
 #endif
 
+private:
+  vpRBParameterUnit m_units;
+
 };
 
-class VISP_EXPORT vpRBFixedStepImageSampler : public vpRBImageSampler
+class VISP_EXPORT vpRBFixedValueParameter : public vpRBParameter
 {
 public:
-  vpRBFixedStepImageSampler(unsigned int step);
-  std::pair<unsigned int, unsigned int> getSampleSteps(const vpRBFeatureTrackerInput &) VP_OVERRIDE;
+  vpRBFixedValueParameter(double value);
+  double getValue(const vpRBFeatureTrackerInput &) VP_OVERRIDE;
 
 private:
-  unsigned int m_step; // Step in pixels
+  double value; // Step in pixels
 };
 
-class VISP_EXPORT vpRBBoundingBoxImageSampler : public vpRBImageSampler
+class VISP_EXPORT vpRBParameterRelativeToObjectSize : public vpRBParameter
 {
 public:
-  vpRBBoundingBoxImageSampler(double coverage);
-  std::pair<unsigned int, unsigned int> getSampleSteps(const vpRBFeatureTrackerInput &) VP_OVERRIDE;
+  vpRBParameterRelativeToObjectSize(double percentage);
+  double getValue(const vpRBFeatureTrackerInput &) VP_OVERRIDE;
 
 private:
   double m_coverage; // Step in pixels
 };
 
-class VISP_EXPORT vpRBTargetImageSampler : public vpRBImageSampler
-{
-public:
-  vpRBTargetImageSampler(unsigned int target);
-  std::pair<unsigned int, unsigned int> getSampleSteps(const vpRBFeatureTrackerInput &) VP_OVERRIDE;
-
-private:
-  unsigned int m_target; // Step in pixels
-};
 
 
 

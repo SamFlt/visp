@@ -212,7 +212,7 @@ void vpRBDenseDepthTracker::computeVVSIter(const vpRBFeatureTrackerInput &/*fram
   m_LTL = m_L.AtA();
   computeJTR(m_L, m_weighted_error, m_LTR);
   m_vvsConverged = false;
-}
+  }
 
 void vpRBDenseDepthTracker::display(const vpCameraParameters &/*cam*/, const vpImage<unsigned char> &/*I*/,
                                     const vpImage<vpRGBa> &/*IRGB*/, const vpImage<unsigned char> &depth) const
