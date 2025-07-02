@@ -53,9 +53,9 @@ const vpHomogeneousMatrix vpPanda3DBaseRenderer::VISP_T_PANDA({
 });
 const vpHomogeneousMatrix vpPanda3DBaseRenderer::PANDA_T_VISP(vpPanda3DBaseRenderer::VISP_T_PANDA.inverse());
 
-const vpHomogeneousMatrix& vpPanda3DBaseRenderer::pandaToVisp() { return VISP_T_PANDA; }
+const vpHomogeneousMatrix &vpPanda3DBaseRenderer::pandaToVisp() { return VISP_T_PANDA; }
 
-const vpHomogeneousMatrix& vpPanda3DBaseRenderer::vispToPanda() { return PANDA_T_VISP; }
+const vpHomogeneousMatrix &vpPanda3DBaseRenderer::vispToPanda() { return PANDA_T_VISP; }
 
 vpPanda3DBaseRenderer::~vpPanda3DBaseRenderer()
 {
@@ -350,6 +350,68 @@ void vpPanda3DBaseRenderer::addNodeToScene(const NodePath &object)
   objectInScene.set_name(object.get_name());
   setNodePose(objectInScene, vpHomogeneousMatrix());
 }
+
+void vpPanda3DBaseRenderer::addNodeToSceneFromFile(const std::string &nodeName, const std::string &modelPath)
+{
+  addNodeToScene(loadObject(nodeName, modelPath));
+}
+
+void getGeometryChildren(PandaNode *n, std::vector<GeomNode *> &geomNodes)
+{
+  if (n->is_geom_node()) {
+    geomNodes.push_back(dynamic_cast<GeomNode *>(n));
+  }
+  else {
+    for (int i = 0; i < n->get_num_children(); ++i) {
+      getGeometryChildren(n->get_child(i), geomNodes);
+    }
+  }
+}
+
+vpMatrix vpPanda3DBaseRenderer::getObjectVertices(const std::string &name) const
+{
+
+
+  NodePath p = m_renderRoot.find(name);
+
+  PandaNode *n = p.node();
+  std::vector<GeomNode *> geomNodes;
+  getGeometryChildren(n, geomNodes);
+
+  if (geomNodes.size() == 0) {
+    throw vpException(vpException::badValue, "The node has no geometry children");
+  }
+  if (geomNodes.size() != 1) {
+    throw vpException(vpException::badValue, "Number of geometry nodes is not 1! This node is either not a geometry node or the case is not handled");
+  }
+
+
+  GeomNode *gn = geomNodes[0];
+
+  unsigned int vertexCount = 0;
+  for (int i = 0; i < gn->get_num_geoms(); ++i) {
+    ConstPointerTo<Geom> geom = gn->get_geom(i);
+    vertexCount += geom->get_vertex_data()->get_num_rows();
+  }
+  std::cout << "Detected " << vertexCount << " vertices" << std::endl;
+  vpMatrix vertices(vertexCount, 3);
+  unsigned vertexId = 0;
+  for (int i = 0; i < gn->get_num_geoms(); ++i) {
+    std::cout << "Processing geometry " << i << std::endl;
+    ConstPointerTo<Geom> geom = gn->get_geom(i);
+    ConstPointerTo<GeomVertexData> verticesData = geom->get_vertex_data();
+    GeomVertexReader reader(verticesData);
+    while (!reader.is_at_end()) {
+      const LVecBase3f &v = reader.get_data3f();
+      vertices[vertexId][0] = v[0];
+      vertices[vertexId][1] = v[1];
+      vertices[vertexId][2] = v[2];
+      ++vertexId;
+    }
+  }
+  return vertices;
+}
+
 
 void vpPanda3DBaseRenderer::setVerticalSyncEnabled(bool useVsync)
 {

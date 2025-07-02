@@ -32,6 +32,7 @@
 
 #include <visp3/core/vpRect.h>
 
+
 #include "boundingSphere.h"
 #include "boundingBox.h"
 #include "graphicsOutput.h"
@@ -96,6 +97,14 @@ void vpObjectCentricRenderer::computeBoundingBox3DPoints()
     m_bb3DPoints.push_back(vpColVector({ p.get_x(), -p.get_z(), p.get_y(), 1.0 }));
   }
 }
+
+vpMatrix vpObjectCentricRenderer::getObjectVertices() const
+{
+
+  std::shared_ptr<vpPanda3DBaseRenderer> r = m_subRenderers[0];
+  return r->getObjectVertices(m_focusedObject);
+}
+
 
 void vpObjectCentricRenderer::computeClipping(float &nearV, float &farV)
 {

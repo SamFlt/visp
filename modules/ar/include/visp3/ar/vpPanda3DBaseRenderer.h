@@ -209,6 +209,10 @@ public:
    */
   virtual void addNodeToScene(const NodePath &object);
 
+  void addNodeToSceneFromFile(const std::string &nodeName, const std::string &modelPath);
+
+  vpMatrix getObjectVertices(const std::string &name) const;
+
   /**
    * @brief set whether vertical sync is enabled.
    * When vertical sync is enabled, render speed will be limited by the display's refresh rate
@@ -234,9 +238,9 @@ public:
 
   virtual void enableSharedDepthBuffer(vpPanda3DBaseRenderer &sourceBuffer);
 
-  static const vpHomogeneousMatrix& pandaToVisp();
+  static const vpHomogeneousMatrix &pandaToVisp();
 
-  static const vpHomogeneousMatrix& vispToPanda();
+  static const vpHomogeneousMatrix &vispToPanda();
 
 protected:
 

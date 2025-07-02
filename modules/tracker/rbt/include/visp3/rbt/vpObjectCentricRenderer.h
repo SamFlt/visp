@@ -104,7 +104,7 @@ public:
     }
   }
 
-
+  vpMatrix getObjectVertices() const;
 
   vpRect computeBoundingBox();
 
@@ -129,7 +129,6 @@ public:
         //   target[i][j] = render[i - unsigned(m_bb.getTop())][j - unsigned(m_bb.getLeft())];
         // }
       }
-
     }
   }
 
